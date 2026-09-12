@@ -3,14 +3,12 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { saveRecipe } from "@/lib/recipes/actions";
 import type { PresetRecipeImage, Recipe } from "@/lib/recipes/types";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { useActionState } from "react";
-
-const textareaClass =
-  "min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
 
 /**
  * A form for creating or editing a recipe.
@@ -73,8 +71,7 @@ export function CreateRecipeForm({
 
       <label className="grid gap-2">
         <span className="text-sm font-medium">{t("description")}</span>
-        <textarea
-          className={textareaClass}
+        <Textarea
           defaultValue={recipe?.description ?? ""}
           name="description"
         />
@@ -161,8 +158,7 @@ function TextList({
   return (
     <label className="grid gap-2">
       <span className="text-sm font-medium">{label}</span>
-      <textarea
-        className={textareaClass}
+      <Textarea
         defaultValue={defaultValue}
         name={name}
         placeholder={placeholder}

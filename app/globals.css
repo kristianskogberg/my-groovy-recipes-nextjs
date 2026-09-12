@@ -4,6 +4,7 @@
 
 @layer base {
   :root {
+    --radius: 0.5rem;
     --background: 39 71% 95%; /* #fbf4e7 */
     --foreground: 44 12% 18%; /* #343129 */
     --primary: 44 85% 60%; /* #efc242 */
