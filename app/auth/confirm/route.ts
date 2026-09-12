@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const next = searchParams.get("next") ?? "/";
+  const locale = next.startsWith("/fi") ? "fi" : "en";
 
   if (token_hash && type) {
     const supabase = await createClient();
@@ -21,10 +22,10 @@ export async function GET(request: NextRequest) {
       redirect(next);
     } else {
       // redirect the user to an error page with some instructions
-      redirect(`/auth/error?error=${error?.message}`);
+      redirect(`/${locale}/auth/error?error=${encodeURIComponent(error.message)}`);
     }
   }
 
   // redirect the user to an error page with some instructions
-  redirect(`/auth/error?error=No token hash or type`);
+  redirect(`/${locale}/auth/error?error=No token hash or type`);
 }

@@ -2,18 +2,21 @@
 
 import { Button } from "@/components/ui/button";
 import { deleteRecipe } from "@/lib/recipes/actions";
+import { useLocale, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 
 export function DeleteRecipeButton({ id }: { id: string }) {
+  const t = useTranslations("Recipe");
+  const locale = useLocale();
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, startTransition] = useTransition();
 
   function handleDelete() {
-    if (!window.confirm("Delete this recipe? This cannot be undone.")) return;
+    if (!window.confirm(t("deleteConfirm"))) return;
 
     setError(null);
     startTransition(async () => {
-      const result = await deleteRecipe(id);
+      const result = await deleteRecipe(id, locale);
       if (result?.error) setError(result.error);
     });
   }
@@ -26,7 +29,7 @@ export function DeleteRecipeButton({ id }: { id: string }) {
         type="button"
         variant="destructive"
       >
-        {isDeleting ? "Deleting..." : "Delete"}
+        {isDeleting ? t("deleting") : t("delete")}
       </Button>
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>

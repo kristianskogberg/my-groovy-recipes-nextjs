@@ -1,9 +1,35 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+const locales = ["en", "fi"] as const;
+
+function pathnameLocale(pathname: string) {
+  return locales.find(
+    (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`),
+  );
+}
+
 export async function updateSession(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const locale = pathnameLocale(pathname);
+
+  if (!locale && pathname !== "/auth/confirm") {
+    const url = request.nextUrl.clone();
+    const preferred = request.cookies.get("NEXT_LOCALE")?.value;
+    const nextLocale = locales.includes(preferred as (typeof locales)[number])
+      ? preferred
+      : "en";
+    url.pathname = `/${nextLocale}${pathname === "/" ? "" : pathname}`;
+    return NextResponse.redirect(url);
+  }
+
+  const requestHeaders = new Headers(request.headers);
+  if (locale) {
+    requestHeaders.set("X-NEXT-INTL-LOCALE", locale);
+  }
+
   let supabaseResponse = NextResponse.next({
-    request,
+    request: { headers: requestHeaders },
   });
 
   // With Fluid compute, don't put this client in a global environment
@@ -21,7 +47,7 @@ export async function updateSession(request: NextRequest) {
             request.cookies.set(name, value),
           );
           supabaseResponse = NextResponse.next({
-            request,
+            request: { headers: requestHeaders },
           });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options),
@@ -40,10 +66,10 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const user = data?.claims;
 
-  if (!user && request.nextUrl.pathname.startsWith("/recipes")) {
+  if (!user && locale && pathname.startsWith(`/${locale}/recipes`)) {
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone();
-    url.pathname = "/auth/login";
+    url.pathname = `/${locale}/auth/login`;
     return NextResponse.redirect(url);
   }
 

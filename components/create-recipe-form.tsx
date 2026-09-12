@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { saveRecipe } from "@/lib/recipes/actions";
 import type { PresetRecipeImage, Recipe } from "@/lib/recipes/types";
 import Image from "next/image";
+import { useLocale, useTranslations } from "next-intl";
 import { useActionState } from "react";
 
 const textareaClass =
@@ -23,17 +24,19 @@ export function CreateRecipeForm({
   presetImages: PresetRecipeImage[];
   recipe?: Recipe;
 }) {
+  const t = useTranslations("Recipe");
+  const locale = useLocale();
   const [state, formAction, isPending] = useActionState(
-    saveRecipe.bind(null, recipe?.id ?? null),
+    saveRecipe.bind(null, recipe?.id ?? null, locale),
     { error: null },
   );
 
   return (
     <form action={formAction} className="mt-6 grid max-w-xl gap-4">
-      <Field defaultValue={recipe?.name} label="Name" name="name" required />
+      <Field defaultValue={recipe?.name} label={t("name")} name="name" required />
 
       <fieldset className="grid gap-2">
-        <legend className="text-sm font-medium">Image</legend>
+        <legend className="text-sm font-medium">{t("image")}</legend>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           <label className="cursor-pointer">
             <input
@@ -44,7 +47,7 @@ export function CreateRecipeForm({
               value=""
             />
             <span className="flex aspect-square items-center justify-center rounded-md border text-sm ring-2 ring-transparent peer-checked:ring-primary">
-              No image
+              {t("noImage")}
             </span>
           </label>
           {presetImages.map((image) => (
@@ -69,7 +72,7 @@ export function CreateRecipeForm({
       </fieldset>
 
       <label className="grid gap-2">
-        <span className="text-sm font-medium">Description</span>
+        <span className="text-sm font-medium">{t("description")}</span>
         <textarea
           className={textareaClass}
           defaultValue={recipe?.description ?? ""}
@@ -80,7 +83,7 @@ export function CreateRecipeForm({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Field
           defaultValue={recipe?.servings}
-          label="Servings"
+          label={t("servings")}
           min="0.01"
           name="servings"
           required
@@ -89,14 +92,14 @@ export function CreateRecipeForm({
         />
         <Field
           defaultValue={recipe?.time_minutes ?? ""}
-          label="Time (minutes)"
+          label={t("time")}
           min="0"
           name="time_minutes"
           type="number"
         />
         <Field
           defaultValue={recipe?.calories_per_serving ?? ""}
-          label="Calories / serving"
+          label={t("calories")}
           min="0"
           name="calories_per_serving"
           type="number"
@@ -105,27 +108,27 @@ export function CreateRecipeForm({
 
       <TextList
         defaultValue={recipe?.ingredients.join("\n")}
-        label="Ingredients"
+        label={t("ingredients")}
         name="ingredients"
-        placeholder="One ingredient per line"
+        placeholder={t("ingredientsPlaceholder")}
       />
       <TextList
         defaultValue={recipe?.steps.join("\n")}
-        label="Steps"
+        label={t("steps")}
         name="steps"
-        placeholder="One step per line"
+        placeholder={t("stepsPlaceholder")}
       />
       <Field
         defaultValue={recipe?.tags.join(", ")}
-        label="Tags"
+        label={t("tags")}
         name="tags"
-        placeholder="dinner, quick, vegetarian"
+        placeholder={t("tagsPlaceholder")}
       />
 
       {state.error && <p className="text-sm text-destructive">{state.error}</p>}
 
       <Button className="w-fit" disabled={isPending} type="submit">
-        {isPending ? "Saving..." : recipe ? "Save recipe" : "Create recipe"}
+        {isPending ? t("saving") : recipe ? t("save") : t("create")}
       </Button>
     </form>
   );

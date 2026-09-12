@@ -4,6 +4,7 @@ import { getPresetRecipeImages } from "@/lib/recipes/presets";
 import type { RecipeActionState } from "@/lib/recipes/types";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 
 const lines = (value: FormDataEntryValue | null) =>
@@ -25,14 +26,16 @@ function optionalNumber(value: FormDataEntryValue | null) {
  */
 export async function saveRecipe(
   recipeId: string | null,
+  locale: string,
   _state: RecipeActionState,
   data: FormData,
 ): Promise<RecipeActionState> {
+  const t = await getTranslations({ locale, namespace: "Errors" });
   const supabase = await createClient();
   const { data: auth, error: authError } = await supabase.auth.getUser();
 
   if (authError || !auth.user) {
-    return { error: "You must be signed in to save a recipe." };
+    return { error: t("signInToSave") };
   }
 
   const name = String(data.get("name") ?? "").trim();
@@ -41,7 +44,7 @@ export async function saveRecipe(
   const calories = optionalNumber(data.get("calories_per_serving"));
 
   if (!name || !Number.isFinite(servings) || servings <= 0) {
-    return { error: "Name and a valid serving amount are required." };
+    return { error: t("invalidRecipe") };
   }
 
   if (
@@ -49,7 +52,7 @@ export async function saveRecipe(
       (!Number.isInteger(timeMinutes) || timeMinutes < 0)) ||
     (calories !== null && (!Number.isInteger(calories) || calories < 0))
   ) {
-    return { error: "Time and calories must be positive whole numbers." };
+    return { error: t("invalidNumbers") };
   }
 
   const presetRecipeImages = await getPresetRecipeImages();
@@ -91,12 +94,12 @@ export async function saveRecipe(
         .single();
 
   if (error || !savedRecipe) {
-    return { error: error?.message ?? "Recipe could not be saved." };
+    return { error: error?.message ?? t("saveFailed") };
   }
 
-  revalidatePath("/");
-  if (recipeId) revalidatePath(`/recipes/${recipeId}`);
-  redirect(recipeId ? `/recipes/${recipeId}` : "/");
+  revalidatePath(`/${locale}`);
+  if (recipeId) revalidatePath(`/${locale}/recipes/${recipeId}`);
+  redirect(recipeId ? `/${locale}/recipes/${recipeId}` : `/${locale}`);
 }
 
 /**
@@ -104,12 +107,16 @@ export async function saveRecipe(
  * @param id ID of the recipe to delete.
  * @returns A Promise that resolves to the updated RecipeActionState.
  */
-export async function deleteRecipe(id: string): Promise<RecipeActionState> {
+export async function deleteRecipe(
+  id: string,
+  locale: string,
+): Promise<RecipeActionState> {
+  const t = await getTranslations({ locale, namespace: "Errors" });
   const supabase = await createClient();
   const { data: auth, error: authError } = await supabase.auth.getUser();
 
   if (authError || !auth.user) {
-    return { error: "You must be signed in to delete a recipe." };
+    return { error: t("signInToDelete") };
   }
 
   const { data, error } = await supabase
@@ -121,9 +128,9 @@ export async function deleteRecipe(id: string): Promise<RecipeActionState> {
     .single();
 
   if (error || !data) {
-    return { error: error?.message ?? "Recipe could not be deleted." };
+    return { error: error?.message ?? t("deleteFailed") };
   }
 
-  revalidatePath("/");
-  redirect("/");
+  revalidatePath(`/${locale}`);
+  redirect(`/${locale}`);
 }

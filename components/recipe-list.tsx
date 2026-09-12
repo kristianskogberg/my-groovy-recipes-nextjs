@@ -1,10 +1,13 @@
 import { getRecipes } from "@/lib/recipes/queries";
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
+import { getTranslations } from "next-intl/server";
 
 export async function RecipeList() {
   const recipes = await getRecipes();
-  if (!recipes.length) return <p>You have no recipes yet.</p>;
+  const home = await getTranslations("Home");
+  const t = await getTranslations("Recipe");
+  if (!recipes.length) return <p>{home("empty")}</p>;
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -27,10 +30,11 @@ export async function RecipeList() {
           {recipe.description && <p className="mt-1 text-sm">{recipe.description}</p>}
 
           <p className="mt-3 text-sm">
-            {recipe.servings} servings
-            {recipe.time_minutes !== null && ` / ${recipe.time_minutes} min`}
+            {t("servingsValue", { count: recipe.servings })}
+            {recipe.time_minutes !== null &&
+              ` / ${t("minutes", { count: recipe.time_minutes })}`}
             {recipe.calories_per_serving !== null &&
-              ` / ${recipe.calories_per_serving} kcal`}
+              ` / ${t("caloriesValue", { count: recipe.calories_per_serving })}`}
           </p>
 
           {recipe.tags.length > 0 && (

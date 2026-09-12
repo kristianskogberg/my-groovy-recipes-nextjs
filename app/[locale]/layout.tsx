@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { DM_Sans, Fraunces } from "next/font/google";
-import "./globals.css";
+import { hasLocale, NextIntlClientProvider } from "next-intl";
+import { getMessages } from "next-intl/server";
+import { notFound } from "next/navigation";
+import { routing } from "@/i18n/routing";
+import "../globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
@@ -24,17 +28,30 @@ const fraunces = Fraunces({
   subsets: ["latin"],
 });
 
-export default function RootLayout({
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }));
+}
+
+export default async function RootLayout({
   children,
+  params,
 }: Readonly<{
   children: React.ReactNode;
+  params: Promise<{ locale: string }>;
 }>) {
+  const { locale } = await params;
+  if (!hasLocale(routing.locales, locale)) notFound();
+
+  const messages = await getMessages({ locale });
+
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body
         className={`${dmSans.variable} ${fraunces.variable} font-sans antialiased`}
       >
-        <div className="mx-auto w-full max-w-3xl">{children}</div>
+        <NextIntlClientProvider messages={messages}>
+          <div className="mx-auto w-full max-w-3xl">{children}</div>
+        </NextIntlClientProvider>
       </body>
     </html>
   );
