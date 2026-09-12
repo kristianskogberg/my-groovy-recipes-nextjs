@@ -2,6 +2,7 @@ import { getRecipes } from "@/lib/recipes/queries";
 import Image from "next/image";
 import { Link } from "@/i18n/navigation";
 import { getTranslations } from "next-intl/server";
+import { TagList } from "@/components/ui/tag";
 
 export async function RecipeList() {
   const recipes = await getRecipes();
@@ -38,9 +39,8 @@ export async function RecipeList() {
           </p>
 
           {recipe.tags.length > 0 && (
-            <p className="mt-2 text-sm">{recipe.tags.join(" / ")}</p>
+            <TagList className="mt-3" tags={recipe.tags} />
           )}
-
         </Link>
       ))}
     </div>

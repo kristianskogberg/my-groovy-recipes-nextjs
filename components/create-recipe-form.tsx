@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TagInput } from "@/components/ui/tag-input";
 import { Textarea } from "@/components/ui/textarea";
 import { saveRecipe } from "@/lib/recipes/actions";
 import type { PresetRecipeImage, Recipe } from "@/lib/recipes/types";
@@ -116,11 +117,12 @@ export function CreateRecipeForm({
         name="steps"
         placeholder={t("stepsPlaceholder")}
       />
-      <Field
-        defaultValue={recipe?.tags.join(", ")}
+      <TagInput
+        defaultValue={recipe?.tags}
         label={t("tags")}
         name="tags"
         placeholder={t("tagsPlaceholder")}
+        removeLabel={(tag) => t("removeTag", { tag })}
       />
 
       {state.error && <p className="text-sm text-destructive">{state.error}</p>}

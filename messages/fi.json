@@ -33,6 +33,7 @@
     "stepsPlaceholder": "Yksi vaihe per rivi",
     "tags": "Tunnisteet",
     "tagsPlaceholder": "päivällinen, nopea, kasvis",
+    "removeTag": "Poista {tag}",
     "create": "Luo resepti",
     "save": "Tallenna resepti",
     "saving": "Tallennetaan...",

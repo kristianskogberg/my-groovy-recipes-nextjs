@@ -1,6 +1,7 @@
 import { CreateRecipeForm } from "@/components/create-recipe-form";
 import { DeleteRecipeButton } from "@/components/delete-recipe-button";
 import { Button } from "@/components/ui/button";
+import { TagList } from "@/components/ui/tag";
 import { getPresetRecipeImages } from "@/lib/recipes/presets";
 import { getRecipe } from "@/lib/recipes/queries";
 import { Link } from "@/i18n/navigation";
@@ -99,7 +100,7 @@ async function RecipeContent({
         </section>
       )}
 
-      {recipe.tags.length > 0 && <p>{recipe.tags.join(" / ")}</p>}
+      {recipe.tags.length > 0 && <TagList tags={recipe.tags} />}
     </article>
   );
 }
