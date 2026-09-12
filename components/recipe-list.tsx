@@ -1,4 +1,5 @@
 import { getRecipes } from "@/lib/recipes/queries";
+import { RecipeMeta } from "@/components/recipe-meta";
 import Image from "next/image";
 import { Link } from "@/i18n/navigation";
 import { getTranslations } from "next-intl/server";
@@ -7,7 +8,6 @@ import { TagList } from "@/components/ui/tag";
 export async function RecipeList() {
   const recipes = await getRecipes();
   const home = await getTranslations("Home");
-  const t = await getTranslations("Recipe");
   if (!recipes.length) return <p>{home("empty")}</p>;
 
   return (
@@ -28,15 +28,16 @@ export async function RecipeList() {
             />
           )}
           <h3 className="text-lg font-semibold">{recipe.name}</h3>
-          {recipe.description && <p className="mt-1 text-sm">{recipe.description}</p>}
+          {recipe.description && (
+            <p className="mt-1 text-sm">{recipe.description}</p>
+          )}
 
-          <p className="mt-3 text-sm">
-            {t("servingsValue", { count: recipe.servings })}
-            {recipe.time_minutes !== null &&
-              ` / ${t("minutes", { count: recipe.time_minutes })}`}
-            {recipe.calories_per_serving !== null &&
-              ` / ${t("caloriesValue", { count: recipe.calories_per_serving })}`}
-          </p>
+          <RecipeMeta
+            calories={recipe.calories_per_serving}
+            className="mt-3"
+            servings={recipe.servings}
+            timeMinutes={recipe.time_minutes}
+          />
 
           {recipe.tags.length > 0 && (
             <TagList className="mt-3" tags={recipe.tags} />

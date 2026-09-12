@@ -1,5 +1,7 @@
 import { CreateRecipeForm } from "@/components/create-recipe-form";
 import { DeleteRecipeButton } from "@/components/delete-recipe-button";
+import { RecipeMeta } from "@/components/recipe-meta";
+import { RecipeSteps } from "@/components/recipe-steps";
 import { Button } from "@/components/ui/button";
 import { TagList } from "@/components/ui/tag";
 import { getPresetRecipeImages } from "@/lib/recipes/presets";
@@ -70,13 +72,11 @@ async function RecipeContent({
 
       {recipe.description && <p>{recipe.description}</p>}
 
-      <p>
-        {t("servingsValue", { count: recipe.servings })}
-        {recipe.time_minutes !== null &&
-          ` / ${t("minutes", { count: recipe.time_minutes })}`}
-        {recipe.calories_per_serving !== null &&
-          ` / ${t("caloriesValue", { count: recipe.calories_per_serving })}`}
-      </p>
+      <RecipeMeta
+        calories={recipe.calories_per_serving}
+        servings={recipe.servings}
+        timeMinutes={recipe.time_minutes}
+      />
 
       {recipe.ingredients.length > 0 && (
         <section>
@@ -90,14 +90,7 @@ async function RecipeContent({
       )}
 
       {recipe.steps.length > 0 && (
-        <section>
-          <h2 className="text-xl font-semibold">{t("steps")}</h2>
-          <ol className="mt-2 list-decimal space-y-2 pl-5">
-            {recipe.steps.map((step, index) => (
-              <li key={`${step}-${index}`}>{step}</li>
-            ))}
-          </ol>
-        </section>
+        <RecipeSteps steps={recipe.steps} title={t("steps")} />
       )}
 
       {recipe.tags.length > 0 && <TagList tags={recipe.tags} />}
