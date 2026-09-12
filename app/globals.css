@@ -8,6 +8,17 @@
     --foreground: 44 12% 18%; /* #343129 */
     --primary: 44 85% 60%; /* #efc242 */
     --primary-foreground: 44 12% 18%; /* #343129 */
+    --card: 39 71% 95%;
+    --card-foreground: 44 12% 18%;
+    --muted: 39 35% 90%;
+    --muted-foreground: 44 10% 40%;
+    --accent: 44 85% 60%;
+    --accent-foreground: 44 12% 18%;
+    --border: 44 12% 75%;
+    --input: 44 12% 75%;
+    --ring: 44 85% 60%;
+    --destructive: 0 72% 51%; /* #dc2626 */
+    --destructive-foreground: 0 0% 100%; /* #ffffff */
   }
 }
 

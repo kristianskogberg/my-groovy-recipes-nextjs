@@ -1,10 +1,11 @@
 import { LogoutButton } from "@/components/logout-button";
 import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export const instant = false;
 
-export default async function ProtectedLayout({
+export default async function RecipesLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -17,7 +18,9 @@ export default async function ProtectedLayout({
   return (
     <main className="mx-auto min-h-svh max-w-5xl p-6">
       <header className="mb-8 flex items-center justify-between">
-        <span className="font-semibold">My Groovy Recipes</span>
+        <Link className="font-semibold" href="/">
+          My Groovy Recipes
+        </Link>
         <LogoutButton />
       </header>
       {children}
