@@ -12,9 +12,9 @@ import { createClient } from "@/lib/supabase/client";
 import imageCompression from "browser-image-compression";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ImageUp, Plus, Save } from "lucide-react";
+import { Images, ImageUp, Plus, Save, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 
 type ImageSource = "" | "preset" | "upload";
 const acceptedImageTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -36,6 +36,11 @@ export function CreateRecipeForm({
   const errors = useTranslations("Errors");
   const locale = useLocale();
   const router = useRouter();
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const presetButtonRef = useRef<HTMLButtonElement>(null);
+  const removeButtonRef = useRef<HTMLButtonElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageId = useId();
   const [imageSource, setImageSource] = useState<ImageSource>(
     recipe?.image_source === "preset" || recipe?.image_source === "upload"
       ? recipe.image_source
@@ -46,6 +51,14 @@ export function CreateRecipeForm({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const displayedImage =
+    imageSource === "preset"
+      ? imageValue
+      : imageSource === "upload"
+        ? imageFile
+          ? previewUrl
+          : recipe?.image_url
+        : null;
 
   useEffect(() => {
     if (!imageFile) {
@@ -154,138 +167,180 @@ export function CreateRecipeForm({
 
   return (
     <form action={formAction} className="mt-6 grid max-w-xl gap-4">
+      <fieldset className="grid min-w-0 gap-2" disabled={isPending}>
+        <legend className="sr-only">{t("image")}</legend>
+        <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
+          {displayedImage ? (
+            <Image
+              alt={t("uploadPreview")}
+              className="object-cover"
+              fill
+              sizes="(max-width: 640px) 100vw, 576px"
+              src={displayedImage}
+              unoptimized={imageSource === "upload" && Boolean(imageFile)}
+            />
+          ) : (
+            <span className="sr-only">{t("noImage")}</span>
+          )}
+          {imageSource && (
+            <Button
+              aria-label={t("removeImage")}
+              ref={removeButtonRef}
+              className="absolute right-3 top-3"
+              icon={<X />}
+              onClick={() => {
+                setImageSource("");
+                setImageValue("");
+                setImageFile(null);
+                setPreviewUrl(null);
+                setImageChanged(true);
+                setImageError(null);
+              }}
+              size="icon"
+              type="button"
+              variant="outline"
+            />
+          )}
+          {!imageSource && (
+            <div className="absolute inset-0 flex flex-col flex-wrap items-center justify-center gap-3 p-3">
+              <Button
+                aria-describedby={imageId + "-help"}
+                icon={<ImageUp />}
+                onClick={() => fileInputRef.current?.click()}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                {t("uploadImage")}
+              </Button>
+              <span className="text-sm text-muted-foreground">{t("or")}</span>
+              <Button
+                aria-haspopup="dialog"
+                aria-controls={imageId + "-dialog"}
+                icon={<Images />}
+                onClick={() => dialogRef.current?.showModal()}
+                ref={presetButtonRef}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                {t("choosePreset")}
+              </Button>
+            </div>
+          )}
+        </div>
+        <input
+          accept={acceptedImageTypes.join(",")}
+          aria-label={t("uploadImage")}
+          hidden
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = "";
+            if (!file) return;
+            if (!acceptedImageTypes.includes(file.type)) {
+              setImageError(errors("invalidImageType"));
+              return;
+            }
+            if (file.size > maxSourceImageSize) {
+              setImageError(errors("imageTooLarge"));
+              return;
+            }
+            setImageSource("upload");
+            setImageValue("");
+            setImageFile(file);
+            setPreviewUrl(null);
+            setImageChanged(true);
+            setImageError(null);
+          }}
+          ref={fileInputRef}
+          type="file"
+        />
+        <p className="text-xs text-muted-foreground" id={imageId + "-help"}>
+          {t("uploadHelp")}
+        </p>
+        {imageError && (
+          <p className="text-sm text-destructive" role="alert">
+            {imageError}
+          </p>
+        )}
+
+        <dialog
+          aria-labelledby={imageId + "-title"}
+          className="m-auto max-h-[85dvh] w-[calc(100%_-_2rem)] max-w-2xl overflow-y-auto rounded-lg border border-border bg-background p-4 text-foreground shadow-xl backdrop:bg-black/50 sm:p-6"
+          id={imageId + "-dialog"}
+          onClick={(event) => {
+            if (event.target !== event.currentTarget) return;
+            const bounds = event.currentTarget.getBoundingClientRect();
+            if (
+              event.clientX < bounds.left ||
+              event.clientX > bounds.right ||
+              event.clientY < bounds.top ||
+              event.clientY > bounds.bottom
+            ) {
+              event.currentTarget.close();
+            }
+          }}
+          onClose={() =>
+            (presetButtonRef.current ?? removeButtonRef.current)?.focus()
+          }
+          ref={dialogRef}
+        >
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <h2 className="text-lg font-semibold" id={imageId + "-title"}>
+              {t("choosePreset")}
+            </h2>
+            <Button
+              aria-label={t("closeImagePicker")}
+              autoFocus
+              icon={<X />}
+              onClick={() => dialogRef.current?.close()}
+              size="icon"
+              type="button"
+              variant="ghost"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {presetImages.map((image) => (
+              <button
+                aria-label={image.label}
+                aria-pressed={
+                  imageSource === "preset" && imageValue === image.value
+                }
+                className="relative rounded-md ring-2 ring-transparent ring-offset-2 ring-offset-background transition-shadow hover:ring-primary/50 focus-visible:outline-none focus-visible:ring-ring aria-pressed:ring-primary disabled:opacity-50"
+                key={image.value}
+                onClick={() => {
+                  setImageSource("preset");
+                  setImageValue(image.value);
+                  setImageFile(null);
+                  setPreviewUrl(null);
+                  setImageChanged(true);
+                  setImageError(null);
+                  dialogRef.current?.close();
+                }}
+                type="button"
+              >
+                <Image
+                  alt=""
+                  className="aspect-square w-full rounded-md object-cover"
+                  height={140}
+                  src={image.value}
+                  width={140}
+                />
+              </button>
+            ))}
+          </div>
+        </dialog>
+      </fieldset>
+      <input name="image_source" type="hidden" value={imageSource} />
+      <input name="image_value" type="hidden" value={imageValue} />
+      <input name="image_changed" type="hidden" value={String(imageChanged)} />
+
       <Field
         defaultValue={recipe?.name}
         label={t("name")}
         name="name"
         required
       />
-
-      <fieldset className="grid gap-3">
-        <legend className="text-sm font-medium">{t("image")}</legend>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-          <label className="cursor-pointer">
-            <input
-              className="peer sr-only"
-              checked={imageSource === ""}
-              name="image_choice"
-              onChange={() => {
-                setImageSource("");
-                setImageValue("");
-                setImageFile(null);
-                setImageChanged(true);
-                setImageError(null);
-              }}
-              type="radio"
-              value="none"
-            />
-            <span className="flex aspect-square items-center justify-center rounded-md border text-sm ring-2 ring-transparent peer-checked:ring-primary">
-              {t("noImage")}
-            </span>
-          </label>
-          <label className="cursor-pointer">
-            <input
-              className="peer sr-only"
-              checked={imageSource === "upload"}
-              name="image_choice"
-              onChange={() => {
-                setImageSource("upload");
-                setImageValue(
-                  recipe?.image_source === "upload"
-                    ? (recipe.image_value ?? "")
-                    : "",
-                );
-                setImageChanged(true);
-                setImageError(null);
-              }}
-              type="radio"
-              value="upload"
-            />
-            <span className="flex aspect-square flex-col items-center justify-center gap-2 rounded-md border text-sm ring-2 ring-transparent peer-checked:ring-primary">
-              <ImageUp className="size-5" />
-              {t("uploadImage")}
-            </span>
-          </label>
-          {presetImages.map((image) => (
-            <label className="cursor-pointer" key={image.value}>
-              <input
-                className="peer sr-only"
-                checked={imageSource === "preset" && imageValue === image.value}
-                name="image_choice"
-                onChange={() => {
-                  setImageSource("preset");
-                  setImageValue(image.value);
-                  setImageFile(null);
-                  setImageChanged(true);
-                  setImageError(null);
-                }}
-                type="radio"
-                value={image.value}
-              />
-              <Image
-                alt={image.label}
-                className="aspect-square w-full rounded-md object-cover ring-2 ring-transparent peer-checked:ring-primary"
-                height={140}
-                src={image.value}
-                width={140}
-              />
-            </label>
-          ))}
-        </div>
-        {imageSource === "upload" && (
-          <div className="grid gap-3 rounded-md border border-input p-3">
-            {(previewUrl ||
-              (recipe?.image_source === "upload" && recipe.image_url)) && (
-              <Image
-                alt={t("uploadPreview")}
-                className="aspect-video w-full max-w-sm rounded-md object-cover"
-                height={240}
-                src={previewUrl ?? recipe!.image_url!}
-                unoptimized={Boolean(previewUrl)}
-                width={400}
-              />
-            )}
-            <Input
-              accept={acceptedImageTypes.join(",")}
-              aria-describedby="image-upload-help"
-              onChange={(event) => {
-                const file = event.target.files?.[0] ?? null;
-                setImageError(null);
-                if (file && !acceptedImageTypes.includes(file.type)) {
-                  setImageError(errors("invalidImageType"));
-                  setImageFile(null);
-                  return;
-                }
-                if (file && file.size > maxSourceImageSize) {
-                  setImageError(errors("imageTooLarge"));
-                  setImageFile(null);
-                  return;
-                }
-                setImageFile(file);
-                if (file) {
-                  setImageValue("");
-                  setImageChanged(true);
-                }
-              }}
-              type="file"
-            />
-            <p className="text-xs text-muted-foreground" id="image-upload-help">
-              {t("uploadHelp")}
-            </p>
-            {imageError && (
-              <p className="text-sm text-destructive">{imageError}</p>
-            )}
-          </div>
-        )}
-        <input name="image_source" type="hidden" value={imageSource} />
-        <input name="image_value" type="hidden" value={imageValue} />
-        <input
-          name="image_changed"
-          type="hidden"
-          value={String(imageChanged)}
-        />
-      </fieldset>
-
       <label className="grid gap-2">
         <span className="text-sm font-medium">{t("description")}</span>
         <Textarea defaultValue={recipe?.description ?? ""} name="description" />
