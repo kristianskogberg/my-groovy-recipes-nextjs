@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { deleteRecipe } from "@/lib/recipes/actions";
 import { useLocale, useTranslations } from "next-intl";
+import { Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 
 export function DeleteRecipeButton({ id }: { id: string }) {
@@ -25,6 +26,7 @@ export function DeleteRecipeButton({ id }: { id: string }) {
     <div className="grid justify-items-end gap-1">
       <Button
         disabled={isDeleting}
+        icon={<Trash2 />}
         onClick={handleDelete}
         type="button"
         variant="destructive"

@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { saveRecipe } from "@/lib/recipes/actions";
 import type { PresetRecipeImage, Recipe } from "@/lib/recipes/types";
 import Image from "next/image";
+import { Plus, Save } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useActionState } from "react";
 
@@ -124,7 +125,12 @@ export function CreateRecipeForm({
 
       {state.error && <p className="text-sm text-destructive">{state.error}</p>}
 
-      <Button className="w-fit" disabled={isPending} type="submit">
+      <Button
+        className="w-fit"
+        disabled={isPending}
+        icon={recipe ? <Save /> : <Plus />}
+        type="submit"
+      >
         {isPending ? t("saving") : recipe ? t("save") : t("create")}
       </Button>
     </form>

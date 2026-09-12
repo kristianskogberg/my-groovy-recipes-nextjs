@@ -1,8 +1,9 @@
 import { AuthButton } from "@/components/auth-button";
-import { AppBrand } from "@/components/app-brand";
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { RecipeList } from "@/components/recipe-list";
+import { AppHeader } from "@/components/app-header";
+import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
+import { Plus } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
@@ -15,25 +16,18 @@ export default async function Home({
   const t = await getTranslations("Home");
 
   return (
-    <main className="min-h-svh p-4 sm:p-6">
-      <header className="flex items-center justify-between gap-4">
-        <h1>
-          <AppBrand locale={locale} />
-        </h1>
-        <div className="flex items-center gap-4">
-          <LanguageSwitcher />
-          <Suspense fallback={null}>
-            <AuthButton />
-          </Suspense>
-        </div>
-      </header>
+    <main className="flex-1 pb-24 sm:pb-0">
+      <AppHeader brandAsHeading locale={locale}>
+        <AuthButton />
+      </AppHeader>
 
-      <Link
-        className="mt-8 inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-        href="/recipes/new"
+      <Button
+        asChild
+        className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-40 h-11 sm:static sm:mt-8 sm:h-9"
+        icon={<Plus />}
       >
-        {t("newRecipe")}
-      </Link>
+        <Link href="/recipes/new">{t("newRecipe")}</Link>
+      </Button>
 
       <section className="mt-8 grid gap-4">
         <h2 className="text-2xl font-bold">{t("yourRecipes")}</h2>

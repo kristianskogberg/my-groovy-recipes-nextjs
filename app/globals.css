@@ -3,7 +3,8 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
+  :root,
+  [data-theme="retro"] {
     --radius: 0.5rem;
     --background: 39 71% 95%; /* #fbf4e7 */
     --foreground: 44 12% 18%; /* #343129 */
@@ -11,6 +12,10 @@
     --primary-foreground: 44 12% 18%; /* #343129 */
     --card: 39 71% 95%;
     --card-foreground: 44 12% 18%;
+    --popover: 39 71% 95%;
+    --popover-foreground: 44 12% 18%;
+    --secondary: 39 35% 90%;
+    --secondary-foreground: 44 12% 18%;
     --muted: 39 35% 90%;
     --muted-foreground: 44 10% 40%;
     --accent: 44 85% 60%;
@@ -20,6 +25,59 @@
     --ring: 44 85% 60%;
     --destructive: 0 72% 51%; /* #dc2626 */
     --destructive-foreground: 0 0% 100%; /* #ffffff */
+    --field: 0 0% 100%;
+    --field-foreground: 44 12% 18%;
+    --button-shadow: 44 12% 18%;
+  }
+
+  [data-theme="brownie"] {
+    --background: 15 43% 13%; /* #301b13 */
+    --foreground: 36 48% 83%; /* #ead8bd */
+    --primary: 44 85% 60%;
+    --primary-foreground: 44 12% 18%;
+    --card: 15 39% 17%;
+    --card-foreground: 36 48% 83%;
+    --popover: 15 39% 17%;
+    --popover-foreground: 36 48% 83%;
+    --secondary: 15 32% 22%;
+    --secondary-foreground: 36 48% 83%;
+    --muted: 15 32% 22%;
+    --muted-foreground: 39 25% 75%;
+    --accent: 44 85% 60%;
+    --accent-foreground: 44 12% 18%;
+    --border: 15 24% 35%;
+    --input: 40 12% 40%;
+    --ring: 44 85% 60%;
+    --destructive: 0 72% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --field: 36 48% 83%;
+    --field-foreground: 15 43% 13%;
+    --button-shadow: 40 20% 8%;
+  }
+
+  [data-theme="modern"] {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 9%;
+    --primary: 221 83% 53%; /* #2563eb */
+    --primary-foreground: 0 0% 100%;
+    --accent: 221 83% 53%; /* #2563eb */
+    --accent-foreground: 0 0% 100%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 40%;
+    --border: 0 0% 70%;
+    --input: 0 0% 70%;
+    --ring: 221 83% 53%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --field: 0 0% 100%;
+    --field-foreground: 0 0% 9%;
+    --button-shadow: 0 0% 9%;
   }
 }
 

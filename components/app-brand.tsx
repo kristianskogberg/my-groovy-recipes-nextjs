@@ -7,7 +7,10 @@ export async function AppBrand({ locale }: { locale: string }) {
   const t = await getTranslations({ locale, namespace: "Common" });
 
   return (
-    <Link className="flex items-center gap-2 font-heading text-xl font-semibold" href="/">
+    <Link
+      className="flex items-center gap-2 font-heading text-xl font-semibold"
+      href="/"
+    >
       <Image
         alt=""
         className="size-10 object-contain"

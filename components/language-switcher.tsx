@@ -9,7 +9,7 @@ export function LanguageSwitcher() {
   const t = useTranslations("Language");
 
   return (
-    <nav aria-label={t("label")} className="flex gap-1 text-sm">
+    <nav aria-label={t("label")} className="flex gap-3 text-sm">
       {(["en", "fi"] as const).map((value) => (
         <Link
           className={locale === value ? "font-bold underline" : "opacity-60"}

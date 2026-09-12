@@ -5,6 +5,7 @@ import { getPresetRecipeImages } from "@/lib/recipes/presets";
 import { getRecipe } from "@/lib/recipes/queries";
 import { Link } from "@/i18n/navigation";
 import Image from "next/image";
+import { Pencil } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -59,7 +60,7 @@ async function RecipeContent({
       <div className="flex items-start justify-between gap-4">
         <h1 className="text-3xl font-bold">{recipe.name}</h1>
         <div className="flex gap-2">
-          <Button asChild>
+          <Button asChild icon={<Pencil />}>
             <Link href={`/recipes/${recipe.id}/edit`}>{t("edit")}</Link>
           </Button>
           <DeleteRecipeButton id={recipe.id} />

@@ -16,6 +16,10 @@ export default {
         heading: ["var(--font-heading)"],
       },
       colors: {
+        field: {
+          DEFAULT: "hsl(var(--field))",
+          foreground: "hsl(var(--field-foreground))",
+        },
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {

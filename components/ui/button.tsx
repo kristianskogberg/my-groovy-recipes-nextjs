@@ -10,13 +10,13 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "border border-foreground bg-primary text-primary-foreground shadow-[0_3px_0_0_hsl(var(--foreground))] hover:-translate-y-px hover:bg-primary/90 hover:shadow-[0_4px_0_0_hsl(var(--foreground))] active:translate-y-[2px] active:shadow-[0_1px_0_0_hsl(var(--foreground))]",
+          "border border-[hsl(var(--button-shadow))] bg-primary text-primary-foreground shadow-[0_3px_0_0_hsl(var(--button-shadow))] hover:-translate-y-px hover:bg-primary/90 hover:shadow-[0_4px_0_0_hsl(var(--button-shadow))] active:translate-y-[2px] active:shadow-[0_1px_0_0_hsl(var(--button-shadow))]",
         destructive:
-          "border border-foreground bg-destructive text-destructive-foreground shadow-[0_3px_0_0_hsl(var(--foreground))] hover:-translate-y-px hover:bg-destructive/90 hover:shadow-[0_4px_0_0_hsl(var(--foreground))] active:translate-y-[2px] active:shadow-[0_1px_0_0_hsl(var(--foreground))]",
+          "border border-[hsl(var(--button-shadow))] bg-destructive text-destructive-foreground shadow-[0_3px_0_0_hsl(var(--button-shadow))] hover:-translate-y-px hover:bg-destructive/90 hover:shadow-[0_4px_0_0_hsl(var(--button-shadow))] active:translate-y-[2px] active:shadow-[0_1px_0_0_hsl(var(--button-shadow))]",
         outline:
-          "border border-foreground bg-white text-foreground shadow-[0_3px_0_0_hsl(var(--foreground))] hover:-translate-y-px hover:text-accent-foreground hover:shadow-[0_4px_0_0_hsl(var(--foreground))] active:translate-y-[2px] active:shadow-[0_1px_0_0_hsl(var(--foreground))]",
+          "border border-[hsl(var(--button-shadow))] bg-field text-field-foreground shadow-[0_3px_0_0_hsl(var(--button-shadow))] hover:-translate-y-px hover:bg-accent hover:text-accent-foreground hover:shadow-[0_4px_0_0_hsl(var(--button-shadow))] active:translate-y-[2px] active:shadow-[0_1px_0_0_hsl(var(--button-shadow))]",
         secondary:
-          "bg-white text-secondary-foreground shadow-sm hover:bg-white/80",
+          "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },

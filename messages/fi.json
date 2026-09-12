@@ -84,5 +84,11 @@
     "english": "EN",
     "finnish": "FI",
     "label": "Kieli"
+  },
+  "Theme": {
+    "label": "Teema",
+    "retro": "Retro",
+    "brownie": "Brownie",
+    "modern": "Modern"
   }
 }

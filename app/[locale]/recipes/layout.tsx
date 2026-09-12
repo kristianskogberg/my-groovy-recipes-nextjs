@@ -1,7 +1,5 @@
-import { AppBrand } from "@/components/app-brand";
 import { LogoutButton } from "@/components/logout-button";
-import { LanguageSwitcher } from "@/components/language-switcher";
-import { Suspense } from "react";
+import { AppHeader } from "@/components/app-header";
 
 export default async function RecipesLayout({
   children,
@@ -13,16 +11,10 @@ export default async function RecipesLayout({
   const { locale } = await params;
 
   return (
-    <main className="min-h-svh p-4 sm:p-6">
-      <header className="mb-8 flex items-center justify-between">
-        <AppBrand locale={locale} />
-        <Suspense fallback={null}>
-          <div className="flex items-center gap-4">
-            <LanguageSwitcher />
-            <LogoutButton />
-          </div>
-        </Suspense>
-      </header>
+    <main className="flex-1">
+      <AppHeader locale={locale}>
+        <LogoutButton />
+      </AppHeader>
       {children}
     </main>
   );

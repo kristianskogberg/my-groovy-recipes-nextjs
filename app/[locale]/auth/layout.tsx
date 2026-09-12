@@ -1,5 +1,4 @@
-import { AppBrand } from "@/components/app-brand";
-import { LanguageSwitcher } from "@/components/language-switcher";
+import { AppHeader } from "@/components/app-header";
 
 export default async function AuthLayout({
   children,
@@ -11,11 +10,8 @@ export default async function AuthLayout({
   const { locale } = await params;
 
   return (
-    <main className="grid min-h-svh grid-rows-[auto_1fr] p-4 sm:p-6">
-      <div className="flex items-center justify-between gap-4">
-        <AppBrand locale={locale} />
-        <LanguageSwitcher />
-      </div>
+    <main className="grid flex-1 grid-rows-[auto_1fr]">
+      <AppHeader locale={locale} />
       <div className="flex items-center justify-center">
         <div className="w-full max-w-sm">{children}</div>
       </div>

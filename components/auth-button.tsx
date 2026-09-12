@@ -12,11 +12,9 @@ export async function AuthButton() {
 
   const user = data?.claims;
   const common = await getTranslations("Common");
-  const home = await getTranslations("Home");
 
   return user ? (
     <div className="flex items-center gap-4">
-      {home("greeting", { email: String(user.email ?? "") })}
       <LogoutButton />
     </div>
   ) : (
