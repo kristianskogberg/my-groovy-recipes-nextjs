@@ -20,6 +20,9 @@
     "name": "Name",
     "image": "Image",
     "noImage": "No image",
+    "uploadImage": "Upload",
+    "uploadPreview": "Selected recipe image preview",
+    "uploadHelp": "JPEG, PNG or WebP, up to 10 MB. The image is optimized before upload.",
     "description": "Description",
     "servings": "Servings",
     "servingsValue": "{count} servings",
@@ -78,8 +81,14 @@
     "invalidRecipe": "Name and a valid serving amount are required.",
     "invalidNumbers": "Time and calories must be positive whole numbers.",
     "saveFailed": "Recipe could not be saved.",
+    "invalidImageType": "Choose a JPEG, PNG or WebP image.",
+    "imageTooLarge": "The image must be 10 MB or smaller.",
+    "imageRequired": "Choose an image to upload.",
+    "imageCompressionFailed": "The image could not be optimized.",
+    "imageUploadFailed": "The image could not be uploaded.",
     "signInToDelete": "You must be signed in to delete a recipe.",
-    "deleteFailed": "Recipe could not be deleted."
+    "deleteFailed": "Recipe could not be deleted.",
+    "imageDeleteFailed": "Image deletion could not be confirmed. The recipe was kept. Check Storage permissions, or edit the recipe to remove its image if the file is already missing."
   },
   "Language": {
     "english": "EN",

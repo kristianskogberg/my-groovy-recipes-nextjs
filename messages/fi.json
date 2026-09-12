@@ -20,6 +20,9 @@
     "name": "Nimi",
     "image": "Kuva",
     "noImage": "Ei kuvaa",
+    "uploadImage": "Lataa kuva",
+    "uploadPreview": "Valitun reseptikuvan esikatselu",
+    "uploadHelp": "JPEG, PNG tai WebP, enintään 10 Mt. Kuva optimoidaan ennen lataamista.",
     "description": "Kuvaus",
     "servings": "Annoksia",
     "servingsValue": "{count} annosta",
@@ -78,8 +81,14 @@
     "invalidRecipe": "Nimi ja kelvollinen annosmäärä vaaditaan.",
     "invalidNumbers": "Ajan ja kalorien pitää olla positiivisia kokonaislukuja.",
     "saveFailed": "Reseptiä ei voitu tallentaa.",
+    "invalidImageType": "Valitse JPEG-, PNG- tai WebP-kuva.",
+    "imageTooLarge": "Kuvan koko saa olla enintään 10 Mt.",
+    "imageRequired": "Valitse ladattava kuva.",
+    "imageCompressionFailed": "Kuvaa ei voitu optimoida.",
+    "imageUploadFailed": "Kuvaa ei voitu ladata.",
     "signInToDelete": "Kirjaudu sisään poistaaksesi reseptin.",
-    "deleteFailed": "Reseptiä ei voitu poistaa."
+    "deleteFailed": "Reseptiä ei voitu poistaa.",
+    "imageDeleteFailed": "Kuvan poistoa ei voitu vahvistaa. Resepti säilytettiin. Tarkista Storage-käyttöoikeudet tai poista kuva reseptiä muokkaamalla, jos tiedosto puuttuu jo."
   },
   "Language": {
     "english": "EN",

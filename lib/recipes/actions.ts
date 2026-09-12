@@ -1,6 +1,7 @@
 "use server";
 
 import { getPresetRecipeImages } from "@/lib/recipes/presets";
+import { RECIPE_IMAGES_BUCKET } from "@/lib/recipes/storage";
 import type { RecipeActionState } from "@/lib/recipes/types";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -15,6 +16,23 @@ const lines = (value: FormDataEntryValue | null) =>
 
 function optionalNumber(value: FormDataEntryValue | null) {
   return value === null || value === "" ? null : Number(value);
+}
+
+/**
+ * Delete a recipe image from Supabase storage.
+ * @param supabase The Supabase client.
+ * @param path The path of the image to delete.
+ */
+async function removeRecipeImage(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  path: string,
+) {
+  // Requires the bucket's SELECT and DELETE policies to be applied.
+  // An empty result is allowed so already-missing images don't block retries.
+  const { error } = await supabase.storage
+    .from(RECIPE_IMAGES_BUCKET)
+    .remove([path]);
+  if (error) throw error;
 }
 
 /**
@@ -55,13 +73,52 @@ export async function saveRecipe(
     return { error: t("invalidNumbers") };
   }
 
+  let previousImageSource: "preset" | "upload" | null = null;
+  let previousImageValue: string | null = null;
+  if (recipeId) {
+    const { data: currentRecipe, error: currentRecipeError } = await supabase
+      .from("recipes")
+      .select("image_source, image_value")
+      .eq("id", recipeId)
+      .eq("user_id", auth.user.id)
+      .maybeSingle();
+
+    if (currentRecipeError || !currentRecipe) {
+      return { error: currentRecipeError?.message ?? t("saveFailed") };
+    }
+
+    previousImageSource =
+      currentRecipe.image_source === "preset" ||
+      currentRecipe.image_source === "upload"
+        ? currentRecipe.image_source
+        : null;
+    previousImageValue = currentRecipe.image_value;
+  }
+
   const presetRecipeImages = await getPresetRecipeImages();
+  const selectedSource = String(data.get("image_source") ?? "");
   const selectedImage = String(data.get("image_value") ?? "");
-  const imageValue = presetRecipeImages.some(
-    (image) => image.value === selectedImage,
-  )
-    ? selectedImage
-    : null;
+  let imageSource: "preset" | "upload" | null = null;
+  let imageValue: string | null = null;
+  const imageChanged = data.get("image_changed") === "true";
+
+  if (recipeId && !imageChanged) {
+    imageSource = previousImageSource;
+    imageValue = previousImageValue;
+  } else if (
+    selectedSource === "preset" &&
+    presetRecipeImages.some((image) => image.value === selectedImage)
+  ) {
+    imageSource = "preset";
+    imageValue = selectedImage;
+  } else if (
+    selectedSource === "upload" &&
+    selectedImage.startsWith(`${auth.user.id}/`) &&
+    /^[0-9a-f-]+\.webp$/i.test(selectedImage.slice(auth.user.id.length + 1))
+  ) {
+    imageSource = "upload";
+    imageValue = selectedImage;
+  }
 
   const values = {
     name,
@@ -69,7 +126,7 @@ export async function saveRecipe(
     servings,
     time_minutes: timeMinutes,
     calories_per_serving: calories,
-    image_source: imageValue ? "preset" : null,
+    image_source: imageSource,
     image_value: imageValue,
     ingredients: lines(data.get("ingredients")),
     steps: lines(data.get("steps")),
@@ -97,9 +154,21 @@ export async function saveRecipe(
     return { error: error?.message ?? t("saveFailed") };
   }
 
+  if (
+    previousImageSource === "upload" &&
+    previousImageValue &&
+    (imageSource !== "upload" || imageValue !== previousImageValue)
+  ) {
+    try {
+      await removeRecipeImage(supabase, previousImageValue);
+    } catch (error) {
+      console.error("Could not remove replaced recipe image", error);
+    }
+  }
+
   revalidatePath(`/${locale}`);
   if (recipeId) revalidatePath(`/${locale}/recipes/${recipeId}`);
-  redirect(recipeId ? `/${locale}/recipes/${recipeId}` : `/${locale}`);
+  return { error: null };
 }
 
 /**
@@ -119,7 +188,31 @@ export async function deleteRecipe(
     return { error: t("signInToDelete") };
   }
 
-  const { data, error } = await supabase
+  const { data: recipe, error: recipeError } = await supabase
+    .from("recipes")
+    .select("id, image_value")
+    .eq("id", id)
+    .eq("user_id", auth.user.id)
+    .maybeSingle();
+
+  if (recipeError || !recipe) {
+    return { error: recipeError?.message ?? t("deleteFailed") };
+  }
+
+  const uploadedPath = recipe.image_value?.startsWith(`${auth.user.id}/`)
+    ? recipe.image_value
+    : null;
+
+  if (uploadedPath) {
+    try {
+      await removeRecipeImage(supabase, uploadedPath);
+    } catch (error) {
+      console.error("Could not remove deleted recipe image", error);
+      return { error: t("imageDeleteFailed") };
+    }
+  }
+
+  const { error } = await supabase
     .from("recipes")
     .delete()
     .eq("id", id)
@@ -127,10 +220,38 @@ export async function deleteRecipe(
     .select("id")
     .single();
 
-  if (error || !data) {
-    return { error: error?.message ?? t("deleteFailed") };
+  if (error) {
+    return { error: error.message ?? t("deleteFailed") };
   }
 
   revalidatePath(`/${locale}`);
   redirect(`/${locale}`);
+}
+
+/** Best-effort cleanup after a failed save, preserving any referenced upload. */
+export async function cleanupUnusedRecipeImage(path: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { data: auth, error } = await supabase.auth.getUser();
+  if (
+    error ||
+    !auth.user ||
+    !path.startsWith(`${auth.user.id}/`) ||
+    !/^[0-9a-f-]+\.webp$/i.test(path.slice(auth.user.id.length + 1))
+  )
+    return false;
+  const { data: recipes, error: queryError } = await supabase
+    .from("recipes")
+    .select("id")
+    .eq("user_id", auth.user.id)
+    .eq("image_value", path)
+    .limit(1);
+  if (queryError) return false;
+  if (recipes?.length) return true;
+  try {
+    await removeRecipeImage(supabase, path);
+    return true;
+  } catch (error) {
+    console.error("Could not clean up unused recipe image", error);
+    return false;
+  }
 }

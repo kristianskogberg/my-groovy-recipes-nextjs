@@ -49,13 +49,13 @@ async function RecipeContent({
 
   return (
     <article className="grid gap-6">
-      {recipe.image_source === "preset" && recipe.image_value && (
+      {recipe.image_url && (
         <Image
           alt={recipe.name}
           className="aspect-video w-full rounded-lg object-cover"
           height={400}
           priority
-          src={recipe.image_value}
+          src={recipe.image_url}
           width={700}
         />
       )}

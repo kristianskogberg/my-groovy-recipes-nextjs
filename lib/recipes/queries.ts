@@ -1,4 +1,5 @@
 import type { Recipe, RecipeCard } from "@/lib/recipes/types";
+import { getUploadedRecipeImageUrl } from "@/lib/recipes/storage";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -12,6 +13,19 @@ async function getUserId() {
   if (error) throw new Error(`Could not verify user: ${error.message}`);
 
   return { supabase, userId: data?.claims?.sub };
+}
+
+function withImageUrl<T extends { image_source: string | null; image_value: string | null }>(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  recipe: T,
+) {
+  return {
+    ...recipe,
+    image_url:
+      recipe.image_source === "upload" && recipe.image_value
+        ? getUploadedRecipeImageUrl(supabase.storage, recipe.image_value)
+        : recipe.image_value,
+  };
 }
 
 /**
@@ -31,7 +45,7 @@ export async function getRecipes() {
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(`Could not load recipes: ${error.message}`);
-  return data as RecipeCard[];
+  return data.map((recipe) => withImageUrl(supabase, recipe)) as RecipeCard[];
 }
 
 /**
@@ -53,5 +67,5 @@ export async function getRecipe(id: string) {
     .maybeSingle();
 
   if (error) throw new Error(`Could not load recipe: ${error.message}`);
-  return data as Recipe | null;
+  return data ? (withImageUrl(supabase, data) as Recipe) : null;
 }

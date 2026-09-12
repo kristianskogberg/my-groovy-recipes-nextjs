@@ -22,6 +22,7 @@ export type Recipe = {
   calories_per_serving: number | null;
   image_source: string | null;
   image_value: string | null;
+  image_url: string | null;
   ingredients: string[];
   steps: string[];
   tags: string[];

@@ -18,12 +18,12 @@ export async function RecipeList() {
           href={`/recipes/${recipe.id}`}
           key={recipe.id}
         >
-          {recipe.image_source === "preset" && recipe.image_value && (
+          {recipe.image_url && (
             <Image
-              alt=""
+              alt={recipe.name}
               className="mb-4 aspect-video w-full rounded-md object-cover"
               height={180}
-              src={recipe.image_value}
+              src={recipe.image_url}
               width={320}
             />
           )}
