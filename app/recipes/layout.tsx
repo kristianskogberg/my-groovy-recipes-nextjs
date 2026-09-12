@@ -16,9 +16,9 @@ export default async function RecipesLayout({
   if (!data?.claims) redirect("/auth/login");
 
   return (
-    <main className="mx-auto min-h-svh max-w-5xl p-6">
+    <main className="min-h-svh p-4 sm:p-6">
       <header className="mb-8 flex items-center justify-between">
-        <Link className="font-semibold" href="/">
+        <Link className="font-heading text-xl font-semibold" href="/">
           My Groovy Recipes
         </Link>
         <LogoutButton />

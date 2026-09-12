@@ -29,7 +29,7 @@ export default async function RecipeEditorPage({
   if (!recipe) notFound();
 
   return (
-    <article className="grid max-w-2xl gap-6">
+    <article className="grid gap-6">
       {recipe.image_source === "preset" && recipe.image_value && (
         <Image
           alt={recipe.name}

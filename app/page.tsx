@@ -5,7 +5,7 @@ import { Suspense } from "react";
 
 export default function Home() {
   return (
-    <main className="mx-auto min-h-svh max-w-5xl p-6">
+    <main className="min-h-svh p-4 sm:p-6">
       <header className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-bold">My Groovy Recipes</h1>
         <Suspense fallback={null}>

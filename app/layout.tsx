@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { DM_Sans, Fraunces } from "next/font/google";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,8 +12,14 @@ export const metadata: Metadata = {
   description: "Save and discover your favorite recipes",
 };
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const dmSans = DM_Sans({
+  variable: "--font-sans",
+  display: "swap",
+  subsets: ["latin"],
+});
+
+const fraunces = Fraunces({
+  variable: "--font-heading",
   display: "swap",
   subsets: ["latin"],
 });
@@ -25,8 +31,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.className} antialiased`}>
-        {children}
+      <body
+        className={`${dmSans.variable} ${fraunces.variable} font-sans antialiased`}
+      >
+        <div className="mx-auto w-full max-w-3xl">{children}</div>
       </body>
     </html>
   );
