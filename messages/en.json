@@ -32,7 +32,7 @@
     "servingsValue": "{count} servings",
     "time": "Time (minutes)",
     "minutes": "{count} min",
-    "calories": "Calories / serving",
+    "calories": "Calories per serving",
     "caloriesValue": "{count} kcal",
     "ingredients": "Ingredients",
     "ingredientsPlaceholder": "One ingredient per line",

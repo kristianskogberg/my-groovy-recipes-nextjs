@@ -12,7 +12,16 @@ import { createClient } from "@/lib/supabase/client";
 import imageCompression from "browser-image-compression";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Images, ImageUp, Plus, Save, X } from "lucide-react";
+import {
+  Clock,
+  Flame,
+  Images,
+  ImageUp,
+  Plus,
+  Save,
+  UserRound,
+  X,
+} from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 
@@ -349,6 +358,7 @@ export function CreateRecipeForm({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Field
           defaultValue={recipe?.servings}
+          icon={<UserRound />}
           label={t("servings")}
           min="0.01"
           name="servings"
@@ -358,6 +368,7 @@ export function CreateRecipeForm({
         />
         <Field
           defaultValue={recipe?.time_minutes ?? ""}
+          icon={<Clock />}
           label={t("time")}
           min="0"
           name="time_minutes"
@@ -365,6 +376,7 @@ export function CreateRecipeForm({
         />
         <Field
           defaultValue={recipe?.calories_per_serving ?? ""}
+          icon={<Flame />}
           label={t("calories")}
           min="0"
           name="calories_per_serving"
@@ -407,21 +419,28 @@ export function CreateRecipeForm({
 }
 
 function Field({
+  icon,
   label,
   name,
   required,
   ...props
-}: React.ComponentProps<typeof Input> & { label: string; name: string }) {
+}: React.ComponentProps<typeof Input> & {
+  icon?: React.ReactNode;
+  label: string;
+  name: string;
+}) {
   return (
     <div className="grid gap-2">
-      <Label htmlFor={name}>
-        {label}
-        {required && (
-          <span className="text-accent" aria-hidden="true">
-            {" "}
-            *
-          </span>
-        )}
+      <Label className="inline-flex items-center gap-1.5" htmlFor={name}>
+        {icon && <span aria-hidden="true" className="[&_svg]:size-4">{icon}</span>}
+        <span>
+          {label}
+          {required && (
+            <span className="text-accent" aria-hidden="true">
+              {" "}*
+            </span>
+          )}
+        </span>
       </Label>
       <Input id={name} name={name} {...props} />
     </div>
