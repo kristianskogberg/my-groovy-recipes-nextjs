@@ -1,9 +1,9 @@
 import { Clock, Flame, UserRound } from "lucide-react";
-import { getTranslations } from "next-intl/server";
+import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 
-export async function RecipeMeta({
+export function RecipeMeta({
   calories,
   className,
   servings,
@@ -14,7 +14,7 @@ export async function RecipeMeta({
   servings: number | string;
   timeMinutes: number | null;
 }) {
-  const t = await getTranslations("Recipe");
+  const t = useTranslations("Recipe");
 
   return (
     <div

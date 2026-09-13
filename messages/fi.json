@@ -18,6 +18,9 @@
     "greeting": "Hei, {email}!"
   },
   "Recipe": {
+    "activity": "Reseptien tila",
+    "returnToForm": "Palaa lomakkeelle",
+    "dismiss": "Sulje",
     "createTitle": "Luo resepti",
     "editTitle": "Muokkaa reseptiä",
     "name": "Nimi",
@@ -82,6 +85,8 @@
     "codeError": "Virhe: {error}"
   },
   "Errors": {
+    "saveUnconfirmed": "Tallennusta ei voitu vahvistaa. Tarkista reseptisi ennen uutta tallennusta, jotta resepti ei tallennu kahdesti.",
+    "deleteUnconfirmed": "Poistoa ei voitu vahvistaa. Tarkista reseptisi ennen uutta yritystä.",
     "passwordMismatch": "Salasanat eivät täsmää",
     "generic": "Jokin meni pieleen.",
     "signInToSave": "Kirjaudu sisään tallentaaksesi reseptin.",

@@ -18,6 +18,9 @@
     "greeting": "Hey, {email}!"
   },
   "Recipe": {
+    "activity": "Recipe activity",
+    "returnToForm": "Return to form",
+    "dismiss": "Dismiss",
     "createTitle": "Create a recipe",
     "editTitle": "Edit recipe",
     "name": "Name",
@@ -82,6 +85,8 @@
     "codeError": "Code error: {error}"
   },
   "Errors": {
+    "saveUnconfirmed": "Saving could not be confirmed. Check your recipes before submitting again to avoid duplicates.",
+    "deleteUnconfirmed": "Deletion could not be confirmed. Check your recipes before trying again.",
     "passwordMismatch": "Passwords do not match",
     "generic": "Something went wrong.",
     "signInToSave": "You must be signed in to save a recipe.",

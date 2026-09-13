@@ -1,3 +1,4 @@
+import { RecipeMutationProvider } from "@/components/recipe-mutation-provider";
 import type { Metadata } from "next";
 import { DM_Sans, Fraunces } from "next/font/google";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
@@ -53,7 +54,7 @@ export default async function RootLayout({
         <script async fetchPriority="high" src="/theme-init.js" />
         <NextIntlClientProvider messages={messages}>
           <div className="mx-auto flex min-h-svh w-full max-w-3xl flex-col px-4 sm:px-6">
-            {children}
+            <RecipeMutationProvider>{children}</RecipeMutationProvider>
             <AppFooter className="hidden md:flex" />
           </div>
         </NextIntlClientProvider>

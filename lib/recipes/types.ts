@@ -39,3 +39,7 @@ export type PresetRecipeImage = { label: string; value: string };
  * The state of a recipe action (e.g., saving or deleting a recipe).
  */
 export type RecipeActionState = { error: string | null };
+
+export type SaveRecipeResult =
+  | { error: string; recipe?: never }
+  | { error: null; recipe: Recipe };

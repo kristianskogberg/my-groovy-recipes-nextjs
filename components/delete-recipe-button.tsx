@@ -1,25 +1,25 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { deleteRecipe } from "@/lib/recipes/actions";
+import { useRecipeMutations } from "@/components/recipe-mutation-provider";
+import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Trash2 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useEffect } from "react";
 
+/** Confirm deletion and show the shared operation state for this recipe. */
 export function DeleteRecipeButton({ id }: { id: string }) {
   const t = useTranslations("Recipe");
   const locale = useLocale();
-  const [error, setError] = useState<string | null>(null);
-  const [isDeleting, startTransition] = useTransition();
+  const { remove, isPending } = useRecipeMutations();
+  const isDeleting = isPending(id);
+  const router = useRouter();
+  useEffect(() => { router.prefetch(`/${locale}`); }, [router, locale]);
 
+  /** Start an optimistic delete only after confirmation and while the recipe is idle. */
   function handleDelete() {
-    if (!window.confirm(t("deleteConfirm"))) return;
-
-    setError(null);
-    startTransition(async () => {
-      const result = await deleteRecipe(id, locale);
-      if (result?.error) setError(result.error);
-    });
+    if (isDeleting || !window.confirm(t("deleteConfirm"))) return;
+    remove(id);
   }
 
   return (
@@ -33,7 +33,6 @@ export function DeleteRecipeButton({ id }: { id: string }) {
       >
         {isDeleting ? t("deleting") : t("delete")}
       </Button>
-      {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );
 }

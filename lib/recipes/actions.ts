@@ -1,19 +1,20 @@
 "use server";
 
 import { getPresetRecipeImages } from "@/lib/recipes/presets";
-import { RECIPE_IMAGES_BUCKET } from "@/lib/recipes/storage";
-import type { RecipeActionState } from "@/lib/recipes/types";
+import { getUploadedRecipeImageUrl, RECIPE_IMAGES_BUCKET } from "@/lib/recipes/storage";
+import type { RecipeActionState, SaveRecipeResult } from "@/lib/recipes/types";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
-import { redirect } from "next/navigation";
 
+/** Trim a multiline field and discard blank entries. */
 const lines = (value: FormDataEntryValue | null) =>
   String(value ?? "")
     .split("\n")
     .map((item) => item.trim())
     .filter(Boolean);
 
+/** Keep an empty optional number as null; validation happens in saveRecipe. */
 function optionalNumber(value: FormDataEntryValue | null) {
   return value === null || value === "" ? null : Number(value);
 }
@@ -38,16 +39,14 @@ async function removeRecipeImage(
 /**
  * Save recipe or update existing recipe.
  * @param recipeId ID of the recipe to update, or null to create a new recipe.
- * @param _state The current state of the recipe.
  * @param data FormData object containing the recipe data to save.
- * @returns A Promise that resolves to the updated RecipeActionState.
+ * @returns The canonical saved recipe, or a validation/persistence error.
  */
 export async function saveRecipe(
   recipeId: string | null,
   locale: string,
-  _state: RecipeActionState,
   data: FormData,
-): Promise<RecipeActionState> {
+): Promise<SaveRecipeResult> {
   const t = await getTranslations({ locale, namespace: "Errors" });
   const supabase = await createClient();
   const { data: auth, error: authError } = await supabase.auth.getUser();
@@ -142,12 +141,12 @@ export async function saveRecipe(
         .update({ ...values, updated_at: new Date().toISOString() })
         .eq("id", recipeId)
         .eq("user_id", auth.user.id)
-        .select("id")
+        .select("id, name, description, servings, time_minutes, calories_per_serving, image_source, image_value, ingredients, steps, tags")
         .single()
     : await supabase
         .from("recipes")
         .insert({ ...values, user_id: auth.user.id })
-        .select("id")
+        .select("id, name, description, servings, time_minutes, calories_per_serving, image_source, image_value, ingredients, steps, tags")
         .single();
 
   if (error || !savedRecipe) {
@@ -168,13 +167,21 @@ export async function saveRecipe(
 
   revalidatePath(`/${locale}`);
   if (recipeId) revalidatePath(`/${locale}/recipes/${recipeId}`);
-  return { error: null };
+  return {
+    error: null,
+    recipe: {
+      ...savedRecipe,
+      image_url: savedRecipe.image_source === "upload" && savedRecipe.image_value
+        ? getUploadedRecipeImageUrl(supabase.storage, savedRecipe.image_value)
+        : savedRecipe.image_value,
+    },
+  };
 }
 
 /**
  * Delete a recipe by its ID.
  * @param id ID of the recipe to delete.
- * @returns A Promise that resolves to the updated RecipeActionState.
+ * @returns An error or success; the client handles navigation and optimistic rollback.
  */
 export async function deleteRecipe(
   id: string,
@@ -225,7 +232,8 @@ export async function deleteRecipe(
   }
 
   revalidatePath(`/${locale}`);
-  redirect(`/${locale}`);
+  revalidatePath(`/${locale}/recipes/${id}`);
+  return { error: null };
 }
 
 /** Best-effort cleanup after a failed save, preserving any referenced upload. */

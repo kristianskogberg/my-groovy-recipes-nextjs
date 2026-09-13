@@ -1,3 +1,4 @@
+import { getRecipes } from "@/lib/recipes/queries";
 import { RecipeList } from "@/components/recipe-list";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
@@ -32,9 +33,13 @@ export default async function Home({
           </Button>
         </div>
         <Suspense fallback={<p>{t("loading")}</p>}>
-          <RecipeList />
+          <Recipes />
         </Suspense>
       </section>
     </main>
   );
+}
+
+async function Recipes() {
+  return <RecipeList recipes={await getRecipes()} />;
 }
