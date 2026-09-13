@@ -16,6 +16,11 @@ export const metadata: Metadata = {
   ),
   title: "My Groovy Recipes",
   description: "Save and discover your favorite recipes",
+  appleWebApp: {
+    capable: true,
+    title: "Groovy Recipes",
+    statusBarStyle: "default",
+  },
 };
 
 const dmSans = DM_Sans({
