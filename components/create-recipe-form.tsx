@@ -95,32 +95,56 @@ export function CreateRecipeForm({
       }
 
       try {
-        const compressed = await imageCompression(imageFile, {
+        let compressed = await imageCompression(imageFile, {
           fileType: "image/webp",
           maxSizeMB: 1,
           maxWidthOrHeight: 1600,
           useWebWorker: true,
         });
+        // Some browsers can display WebP but cannot encode it with canvas.
+        if (compressed.type !== "image/webp") {
+          compressed = await imageCompression(imageFile, {
+            fileType: "image/jpeg",
+            maxSizeMB: 1,
+            maxWidthOrHeight: 1600,
+            useWebWorker: true,
+          });
+        }
+        if (!["image/webp", "image/jpeg"].includes(compressed.type)) {
+          return { error: errors("imageCompressionFailed") };
+        }
+        if (compressed.size === 0 || compressed.size > 2 * 1024 * 1024) {
+          return { error: errors("imageCompressionFailed") };
+        }
         const supabase = createClient();
         const { data: auth, error: authError } = await supabase.auth.getUser();
         if (authError || !auth.user) {
           return { error: errors("signInToSave") };
         }
 
-        uploadedPath = `${auth.user.id}/${crypto.randomUUID()}.webp`;
+        const extension = compressed.type === "image/webp" ? "webp" : "jpg";
+        uploadedPath = `${auth.user.id}/${crypto.randomUUID()}.${extension}`;
         const { error: uploadError } = await supabase.storage
           .from(RECIPE_IMAGES_BUCKET)
           .upload(uploadedPath, compressed, {
             cacheControl: "31536000",
-            contentType: "image/webp",
+            contentType: compressed.type,
             upsert: false,
           });
-        if (uploadError) return { error: errors("imageUploadFailed") };
+        if (uploadError) {
+          console.error("Recipe image upload failed", {
+            message: uploadError.message,
+            type: compressed.type,
+            size: compressed.size,
+          });
+          return { error: `${errors("imageUploadFailed")} ${uploadError.message}` };
+        }
 
         data.set("image_source", "upload");
         data.set("image_value", uploadedPath);
         data.set("image_changed", "true");
-      } catch {
+      } catch (error) {
+        console.error("Recipe image preparation or upload failed", error);
         return { error: errors("imageCompressionFailed") };
       }
     } else {

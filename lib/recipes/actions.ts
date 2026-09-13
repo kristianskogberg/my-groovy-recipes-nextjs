@@ -114,7 +114,7 @@ export async function saveRecipe(
   } else if (
     selectedSource === "upload" &&
     selectedImage.startsWith(`${auth.user.id}/`) &&
-    /^[0-9a-f-]+\.webp$/i.test(selectedImage.slice(auth.user.id.length + 1))
+    /^[0-9a-f-]+\.(webp|jpg)$/i.test(selectedImage.slice(auth.user.id.length + 1))
   ) {
     imageSource = "upload";
     imageValue = selectedImage;
@@ -236,7 +236,7 @@ export async function cleanupUnusedRecipeImage(path: string): Promise<boolean> {
     error ||
     !auth.user ||
     !path.startsWith(`${auth.user.id}/`) ||
-    !/^[0-9a-f-]+\.webp$/i.test(path.slice(auth.user.id.length + 1))
+    !/^[0-9a-f-]+\.(webp|jpg)$/i.test(path.slice(auth.user.id.length + 1))
   )
     return false;
   const { data: recipes, error: queryError } = await supabase
