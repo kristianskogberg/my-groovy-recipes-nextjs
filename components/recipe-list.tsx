@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRecipeMutations } from "@/components/recipe-mutation-provider";
 import { overlayRecipes } from "@/lib/recipes/optimistic";
-import type { RecipeCard } from "@/lib/recipes/types";
+import type { Recipe } from "@/lib/recipes/types";
 import { RecipeMeta } from "@/components/recipe-meta";
 import Image from "next/image";
 import { Link } from "@/i18n/navigation";
@@ -11,15 +11,14 @@ import { useTranslations } from "next-intl";
 import { TagList } from "@/components/ui/tag";
 
 /** Display server cards with local changes, then acknowledge matching saved results. */
-export function RecipeList({
-  recipes: serverRecipes,
-}: {
-  recipes: RecipeCard[];
-}) {
-  const { mutations, reconcile } = useRecipeMutations();
+export function RecipeList({ recipes: serverRecipes }: { recipes: Recipe[] }) {
+  const { mutations, reconcile, rememberRecipes } = useRecipeMutations();
   const recipes = overlayRecipes(serverRecipes, mutations);
   const home = useTranslations("Home");
   const t = useTranslations("Recipe");
+  useEffect(() => {
+    rememberRecipes(serverRecipes);
+  }, [serverRecipes, rememberRecipes]);
   useEffect(() => {
     reconcile(serverRecipes);
   }, [serverRecipes, mutations, reconcile]);

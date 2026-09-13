@@ -13,7 +13,7 @@ export type RecipeMutation = {
   recipeId: string | null;
   kind: "save" | "delete";
   status: "pending" | "saved" | "failed";
-  recipe?: RecipeCard;
+  recipe?: Recipe;
   draft?: RecipeDraft;
   previewUrl?: string;
   error?: string;
@@ -58,8 +58,8 @@ export function overlayRecipes(recipes: RecipeCard[], mutations: RecipeMutation[
 }
 
 /** True when server cards contain the saved result and its local overlay can be removed. */
-// Compare only card fields: database numeric columns may arrive as strings.
-export function mutationIsReflected(mutation: RecipeMutation, recipes: RecipeCard[]) {
+// Database numeric columns may arrive as strings.
+export function mutationIsReflected(mutation: RecipeMutation, recipes: Recipe[]) {
   if (mutation.status !== "saved") return false;
   if (mutation.kind === "delete") return !recipes.some(recipe => recipe.id === mutation.recipeId);
   const expected = mutation.recipe;
@@ -70,5 +70,7 @@ export function mutationIsReflected(mutation: RecipeMutation, recipes: RecipeCar
     actual.time_minutes === expected.time_minutes &&
     actual.calories_per_serving === expected.calories_per_serving &&
     actual.image_source === expected.image_source && actual.image_value === expected.image_value &&
-    JSON.stringify(actual.tags) === JSON.stringify(expected.tags);
+    JSON.stringify(actual.tags) === JSON.stringify(expected.tags) &&
+    JSON.stringify(actual.ingredients) === JSON.stringify(expected.ingredients) &&
+    JSON.stringify(actual.steps) === JSON.stringify(expected.steps);
 }

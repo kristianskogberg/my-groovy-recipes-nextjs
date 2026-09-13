@@ -1,16 +1,7 @@
+import { RecipeDetail } from "@/components/recipe-detail";
 import { CreateRecipeForm } from "@/components/create-recipe-form";
-import { DeleteRecipeButton } from "@/components/delete-recipe-button";
-import { RecipeMeta } from "@/components/recipe-meta";
-import { RecipeSteps } from "@/components/recipe-steps";
-import { Button } from "@/components/ui/button";
-import { TagList } from "@/components/ui/tag";
 import { getPresetRecipeImages } from "@/lib/recipes/presets";
-import { getRecipe } from "@/lib/recipes/queries";
-import { Link } from "@/i18n/navigation";
-import Image from "next/image";
-import { Pencil } from "lucide-react";
 import { getTranslations } from "next-intl/server";
-import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 export default function RecipeEditorPage({
@@ -19,17 +10,15 @@ export default function RecipeEditorPage({
   params: Promise<{ id: string }>;
 }) {
   return (
-    <Suspense fallback={<div className="h-48 animate-pulse rounded-lg bg-muted" />}>
+    <Suspense
+      fallback={<div className="h-48 animate-pulse rounded-lg bg-muted" />}
+    >
       <RecipeContent params={params} />
     </Suspense>
   );
 }
 
-async function RecipeContent({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+async function RecipeContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const t = await getTranslations("Recipe");
 
@@ -44,56 +33,5 @@ async function RecipeContent({
     );
   }
 
-  const recipe = await getRecipe(id);
-  if (!recipe) notFound();
-
-  return (
-    <article className="grid gap-6">
-      {recipe.image_url && (
-        <Image
-          alt={recipe.name}
-          className="aspect-video w-full rounded-lg object-cover"
-          height={400}
-          priority
-          src={recipe.image_url}
-          width={700}
-        />
-      )}
-
-      <div className="flex items-start justify-between gap-4">
-        <h1 className="text-3xl font-bold">{recipe.name}</h1>
-        <div className="flex gap-2">
-          <Button asChild icon={<Pencil />}>
-            <Link href={`/recipes/${recipe.id}/edit`}>{t("edit")}</Link>
-          </Button>
-          <DeleteRecipeButton id={recipe.id} />
-        </div>
-      </div>
-
-      {recipe.description && <p>{recipe.description}</p>}
-
-      <RecipeMeta
-        calories={recipe.calories_per_serving}
-        servings={recipe.servings}
-        timeMinutes={recipe.time_minutes}
-      />
-
-      {recipe.ingredients.length > 0 && (
-        <section>
-          <h2 className="text-xl font-semibold">{t("ingredients")}</h2>
-          <ul className="mt-2 list-disc pl-5">
-            {recipe.ingredients.map((ingredient, index) => (
-              <li key={`${ingredient}-${index}`}>{ingredient}</li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {recipe.steps.length > 0 && (
-        <RecipeSteps steps={recipe.steps} title={t("steps")} />
-      )}
-
-      {recipe.tags.length > 0 && <TagList tags={recipe.tags} />}
-    </article>
-  );
+  return <RecipeDetail key={id} id={id} />;
 }

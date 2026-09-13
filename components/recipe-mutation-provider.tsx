@@ -7,15 +7,18 @@ import { Link } from "@/i18n/navigation";
 import { deleteRecipe } from "@/lib/recipes/actions";
 import { mutationIsReflected, recipeFromDraft, type RecipeDraft, type RecipeMutation } from "@/lib/recipes/optimistic";
 import { saveWithImage } from "@/lib/recipes/save-with-image";
-import type { RecipeCard } from "@/lib/recipes/types";
+import type { Recipe } from "@/lib/recipes/types";
 import { createClient } from "@/lib/supabase/client";
 
 type MutationsContext = {
+  accountVersion: number;
+  cachedRecipes: Record<string, Recipe>;
+  rememberRecipes: (recipes: Recipe[]) => void;
   mutations: RecipeMutation[];
   newRecipeFormVersion: number;
   save: (draft: RecipeDraft, recoveredKey?: string) => boolean;
   remove: (id: string) => void;
-  reconcile: (recipes: RecipeCard[]) => void;
+  reconcile: (recipes: Recipe[]) => void;
   isPending: (id: string | null) => boolean;
 };
 
@@ -33,6 +36,11 @@ export function useRecipeMutations() {
  * Show changes immediately, then keep saved results until server cards catch up.
  */
 export function RecipeMutationProvider({ children }: { children: React.ReactNode }) {
+  const [accountVersion, setAccountVersion] = useState(0);
+  const [cachedRecipes, setCachedRecipes] = useState<Record<string, Recipe>>({});
+  const rememberRecipes = useCallback((recipes: Recipe[]) => {
+    setCachedRecipes(Object.fromEntries(recipes.map(recipe => [recipe.id, recipe])));
+  }, []);
   const [mutations, setMutations] = useState<RecipeMutation[]>([]);
   const [newRecipeFormVersion, setNewRecipeFormVersion] = useState(0);
   // Synchronous ownership prevents double submissions before React rerenders.
@@ -69,6 +77,8 @@ export function RecipeMutationProvider({ children }: { children: React.ReactNode
           if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
         }
         publish([]);
+        setCachedRecipes({});
+        setAccountVersion(version => version + 1);
       }
       userId = nextId;
     });
@@ -96,6 +106,15 @@ export function RecipeMutationProvider({ children }: { children: React.ReactNode
 
   /** Store success/failure and request fresh server data without navigating again. */
   function finish(key: string, update: Partial<RecipeMutation>) {
+    const operation = current.current.find(item => item.key === key);
+    if (update.status === "saved") {
+      setCachedRecipes(previous => {
+        const next = { ...previous };
+        if (operation?.kind === "delete" && operation.recipeId) delete next[operation.recipeId];
+        if (update.recipe) next[update.recipe.id] = update.recipe;
+        return next;
+      });
+    }
     publish(current.current.map(item => item.key === key ? { ...item, ...update } : item));
     router.refresh();
   }
@@ -160,13 +179,13 @@ export function RecipeMutationProvider({ children }: { children: React.ReactNode
   }
 
   /** Drop confirmed overlays only once the refreshed list reflects them. Keep failed drafts. */
-  const reconcile = useCallback((recipes: RecipeCard[]) => {
+  const reconcile = useCallback((recipes: Recipe[]) => {
     const next = current.current.filter(item => !mutationIsReflected(item, recipes));
     if (next.length !== current.current.length) publish(next);
   }, [publish]);
 
   return (
-    <Context.Provider value={{ mutations, newRecipeFormVersion, save, remove, reconcile, isPending }}>
+    <Context.Provider value={{ accountVersion, cachedRecipes, rememberRecipes, mutations, newRecipeFormVersion, save, remove, reconcile, isPending }}>
       {children}
       <Suspense fallback={null}>
         <RefreshAfterNavigation home={`/${locale}`} refresh={refreshAfterNavigation} />

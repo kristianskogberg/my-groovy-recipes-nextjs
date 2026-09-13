@@ -1,4 +1,4 @@
-import type { Recipe, RecipeCard } from "@/lib/recipes/types";
+import type { Recipe } from "@/lib/recipes/types";
 import { getUploadedRecipeImageUrl } from "@/lib/recipes/storage";
 import { createClient } from "@/lib/supabase/server";
 
@@ -30,7 +30,7 @@ function withImageUrl<T extends { image_source: string | null; image_value: stri
 
 /**
  * Fetch recipes for the current user.
- * @returns An array of RecipeCard objects.
+ * Include detail fields so card navigation can reuse the loaded recipes.
  */
 export async function getRecipes() {
   const { supabase, userId } = await getUserId();
@@ -39,13 +39,13 @@ export async function getRecipes() {
   const { data, error } = await supabase
     .from("recipes")
     .select(
-      "id, name, description, servings, time_minutes, calories_per_serving, image_source, image_value, tags",
+      "id, name, description, servings, time_minutes, calories_per_serving, image_source, image_value, ingredients, steps, tags",
     )
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(`Could not load recipes: ${error.message}`);
-  return data.map((recipe) => withImageUrl(supabase, recipe)) as RecipeCard[];
+  return data.map((recipe) => withImageUrl(supabase, recipe)) as Recipe[];
 }
 
 /**
