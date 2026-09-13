@@ -4,6 +4,9 @@ import { getPresetRecipeImages } from "@/lib/recipes/presets";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
+// Prefetch the route shell without fetching uncached server data such as auth.
+export const prefetch = "partial";
+
 export default function RecipeEditorPage({
   params,
 }: {
@@ -20,9 +23,9 @@ export default function RecipeEditorPage({
 
 async function RecipeContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const t = await getTranslations("Recipe");
 
   if (id === "new") {
+    const t = await getTranslations("Recipe");
     const presetImages = await getPresetRecipeImages();
 
     return (

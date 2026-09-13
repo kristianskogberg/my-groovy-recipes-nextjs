@@ -53,6 +53,7 @@ function RecipeDetailContent({ id }: { id: string }) {
           className="aspect-video w-full rounded-lg object-cover"
           height={400}
           priority
+          sizes="(max-width: 640px) calc(100vw - 32px), (max-width: 768px) calc(100vw - 48px), 720px"
           src={recipe.image_url}
           width={700}
         />

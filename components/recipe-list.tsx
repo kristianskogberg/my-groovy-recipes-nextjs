@@ -43,6 +43,8 @@ export function RecipeList({ recipes: serverRecipes }: { recipes: Recipe[] }) {
                 alt={recipe.name}
                 className="mb-4 aspect-video w-full rounded-md object-cover"
                 height={180}
+                // Match the detail image on phones to reuse the downloaded variant.
+                sizes="(max-width: 640px) calc(100vw - 32px), (max-width: 1024px) 320px, 200px"
                 src={recipe.image_url}
                 unoptimized={recipe.image_url.startsWith("blob:")}
                 width={320}
@@ -75,6 +77,7 @@ export function RecipeList({ recipes: serverRecipes }: { recipes: Recipe[] }) {
           <Link
             className={className}
             href={`/recipes/${recipe.id}`}
+            prefetch={true}
             key={recipe.id}
           >
             {content}
