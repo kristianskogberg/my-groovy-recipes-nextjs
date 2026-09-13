@@ -67,7 +67,7 @@ export function TagInput({
         <input name={name} type="hidden" value={tags.join(",")} />
         <input
           autoComplete="off"
-          className="min-w-24 flex-1 bg-transparent px-1 py-1 text-sm outline-none placeholder:text-field-foreground/60"
+          className="min-w-24 flex-1 bg-transparent px-1 py-1 text-base outline-none placeholder:text-field-foreground/60 md:text-sm"
           id={name}
           onBlur={() => draft.trim() && addTags(draft)}
           onChange={(event) => setDraft(event.target.value)}

@@ -13,12 +13,11 @@ import imageCompression from "browser-image-compression";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
+  Bookmark,
   Clock,
   Flame,
   Images,
   ImageUp,
-  Plus,
-  Save,
   UserRound,
   X,
 } from "lucide-react";
@@ -137,7 +136,9 @@ export function CreateRecipeForm({
             type: compressed.type,
             size: compressed.size,
           });
-          return { error: `${errors("imageUploadFailed")} ${uploadError.message}` };
+          return {
+            error: `${errors("imageUploadFailed")} ${uploadError.message}`,
+          };
         }
 
         data.set("image_source", "upload");
@@ -288,9 +289,7 @@ export function CreateRecipeForm({
           ref={fileInputRef}
           type="file"
         />
-        <p className="text-xs text-muted-foreground" id={imageId + "-help"}>
-          {t("uploadHelp")}
-        </p>
+
         {imageError && (
           <p className="text-sm text-destructive" role="alert">
             {imageError}
@@ -391,19 +390,19 @@ export function CreateRecipeForm({
           type="number"
         />
         <Field
-          defaultValue={recipe?.time_minutes ?? ""}
-          icon={<Clock />}
-          label={t("time")}
-          min="0"
-          name="time_minutes"
-          type="number"
-        />
-        <Field
           defaultValue={recipe?.calories_per_serving ?? ""}
           icon={<Flame />}
           label={t("calories")}
           min="0"
           name="calories_per_serving"
+          type="number"
+        />
+        <Field
+          defaultValue={recipe?.time_minutes ?? ""}
+          icon={<Clock />}
+          label={t("time")}
+          min="0"
+          name="time_minutes"
           type="number"
         />
       </div>
@@ -430,14 +429,16 @@ export function CreateRecipeForm({
 
       {state.error && <p className="text-sm text-destructive">{state.error}</p>}
 
-      <Button
-        className="w-fit"
-        disabled={isPending}
-        icon={recipe ? <Save /> : <Plus />}
-        type="submit"
-      >
-        {isPending ? t("saving") : recipe ? t("save") : t("create")}
-      </Button>
+      <div className="flex w-full justify-end">
+        <Button
+          className="h-11 w-fit"
+          disabled={isPending}
+          icon={<Bookmark />}
+          type="submit"
+        >
+          {isPending ? t("saving") : recipe ? t("save") : t("create")}
+        </Button>
+      </div>
     </form>
   );
 }
@@ -456,12 +457,17 @@ function Field({
   return (
     <div className="grid gap-2">
       <Label className="inline-flex items-center gap-1.5" htmlFor={name}>
-        {icon && <span aria-hidden="true" className="[&_svg]:size-4">{icon}</span>}
+        {icon && (
+          <span aria-hidden="true" className="[&_svg]:size-4">
+            {icon}
+          </span>
+        )}
         <span>
           {label}
           {required && (
             <span className="text-accent" aria-hidden="true">
-              {" "}*
+              {" "}
+              *
             </span>
           )}
         </span>
