@@ -85,8 +85,21 @@ function RecipeForm({ presetImages, recipe, draft: initialDraft, recoveredKey }:
     }
 
     const url = URL.createObjectURL(imageFile);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
+    let cancelled = false;
+    // Decode large device photos before painting them so the form stays responsive.
+    const preview = new window.Image();
+    preview.decoding = "async";
+    preview.src = url;
+    void preview.decode().then(() => {
+      if (!cancelled) setPreviewUrl(url);
+    }).catch(() => {
+      // Let the image element handle formats that cannot be predecoded.
+      if (!cancelled) setPreviewUrl(url);
+    });
+    return () => {
+      cancelled = true;
+      URL.revokeObjectURL(url);
+    };
   }, [imageFile]);
 
   useEffect(() => {
@@ -117,6 +130,8 @@ function RecipeForm({ presetImages, recipe, draft: initialDraft, recoveredKey }:
               fill
               sizes="(max-width: 640px) 100vw, 576px"
               src={displayedImage}
+              decoding="async"
+              loading="eager"
               unoptimized={imageSource === "upload" && Boolean(imageFile)}
             />
           ) : (
