@@ -16,7 +16,7 @@ export function LogoutButton() {
   };
 
   return (
-    <Button variant={"secondary"} onClick={logout}>
+    <Button variant="link" onClick={logout}>
       {t("logout")}
     </Button>
   );

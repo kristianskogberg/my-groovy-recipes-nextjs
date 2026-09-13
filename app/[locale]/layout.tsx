@@ -54,7 +54,7 @@ export default async function RootLayout({
         <NextIntlClientProvider messages={messages}>
           <div className="mx-auto flex min-h-svh w-full max-w-3xl flex-col px-4 sm:px-6">
             {children}
-            <AppFooter />
+            <AppFooter className="hidden md:flex" />
           </div>
         </NextIntlClientProvider>
       </body>

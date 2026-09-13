@@ -1,4 +1,3 @@
-import { AuthButton } from "@/components/auth-button";
 import { RecipeList } from "@/components/recipe-list";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
@@ -17,20 +16,21 @@ export default async function Home({
 
   return (
     <main className="flex-1 pb-24 sm:pb-0">
-      <AppHeader brandAsHeading locale={locale}>
-        <AuthButton />
-      </AppHeader>
+      <AppHeader brandAsHeading locale={locale} />
 
-      <Button
-        asChild
-        className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-40 h-11 sm:static sm:mt-8 sm:h-9"
-        icon={<Plus />}
-      >
-        <Link href="/recipes/new">{t("newRecipe")}</Link>
-      </Button>
-
-      <section className="mt-8 grid gap-4">
-        <h2 className="text-2xl font-bold">{t("yourRecipes")}</h2>
+      <section className="grid gap-4">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-2xl font-bold h-11 items-center flex">
+            {t("yourRecipes")}
+          </h2>
+          <Button
+            asChild
+            className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-40 h-11 sm:static"
+            icon={<Plus />}
+          >
+            <Link href="/recipes/new">{t("newRecipe")}</Link>
+          </Button>
+        </div>
         <Suspense fallback={<p>{t("loading")}</p>}>
           <RecipeList />
         </Suspense>

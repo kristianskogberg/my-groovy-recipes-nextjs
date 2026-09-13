@@ -1,5 +1,8 @@
 {
   "Common": {
+    "menu": "Valikko",
+    "openMenu": "Avaa valikko",
+    "closeMenu": "Sulje valikko",
     "appName": "My Groovy Recipes",
     "email": "Sähköposti",
     "password": "Salasana",

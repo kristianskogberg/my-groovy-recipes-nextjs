@@ -1,4 +1,3 @@
-import { LogoutButton } from "@/components/logout-button";
 import { AppHeader } from "@/components/app-header";
 
 export default async function RecipesLayout({
@@ -12,9 +11,7 @@ export default async function RecipesLayout({
 
   return (
     <main className="flex-1">
-      <AppHeader locale={locale}>
-        <LogoutButton />
-      </AppHeader>
+      <AppHeader locale={locale} />
       {children}
     </main>
   );

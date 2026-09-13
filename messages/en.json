@@ -5,7 +5,10 @@
     "password": "Password",
     "login": "Log in",
     "logout": "Log out",
-    "signUp": "Sign up"
+    "signUp": "Sign up",
+    "menu": "Menu",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
   },
   "Home": {
     "newRecipe": "New recipe",
