@@ -31,7 +31,7 @@
   }
 
   [data-theme="brownie"] {
-    --background: 15 43% 13%; /* #301b13 */
+    --background: 15 35% 13%;
     --foreground: 36 48% 83%; /* #ead8bd */
     --primary: 44 85% 60%;
     --primary-foreground: 44 12% 18%;
