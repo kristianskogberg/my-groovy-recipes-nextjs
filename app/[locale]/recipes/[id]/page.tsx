@@ -66,7 +66,7 @@ async function RecipeContent({
           <Button asChild icon={<Pencil />}>
             <Link href={`/recipes/${recipe.id}/edit`}>{t("edit")}</Link>
           </Button>
-          <DeleteRecipeButton id={recipe.id} />
+          <DeleteRecipeButton recipe={recipe} />
         </div>
       </div>
 

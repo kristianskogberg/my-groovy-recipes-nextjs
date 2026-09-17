@@ -5,13 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TagInput } from "@/components/ui/tag-input";
 import { Textarea } from "@/components/ui/textarea";
-import { cleanupUnusedRecipeImage, saveRecipe } from "@/lib/recipes/actions";
-import { RECIPE_IMAGES_BUCKET } from "@/lib/recipes/storage";
+import { useRecipeSaves } from "@/components/recipe-save-provider";
+import { recipeFormKey, validateRecipeDraft, type RecipeSaveOperation } from "@/lib/recipes/optimistic";
+import { acceptedImageTypes, maxSourceImageSize } from "@/lib/recipes/save-with-image";
 import type { PresetRecipeImage, Recipe } from "@/lib/recipes/types";
-import { createClient } from "@/lib/supabase/client";
-import imageCompression from "browser-image-compression";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Bookmark,
   Clock,
@@ -22,24 +21,45 @@ import {
   X,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useActionState, useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 type ImageSource = "" | "preset" | "upload";
-const acceptedImageTypes = ["image/jpeg", "image/png", "image/webp"];
-const maxSourceImageSize = 10 * 1024 * 1024;
 
 /**
  * A form for creating or editing a recipe.
  * @param recipe - The recipe to edit, if it exists.
  * @returns A React component.
  */
-export function CreateRecipeForm({
+export function CreateRecipeForm(props: { presetImages: PresetRecipeImage[]; recipe?: Recipe }) {
+  const { operations } = useRecipeSaves();
+  const recoveryKey = useSearchParams().get("draft");
+  const [formVersion, setFormVersion] = useState(0);
+  const draft = operations.find((operation) => operation.key === recoveryKey &&
+    operation.status === "failed" &&
+    operation.recipeId === (props.recipe?.id ?? null));
+  // Cache Components can retain this page after navigation. Remount all inputs
+  // after handing off a submission, including TagInput and the submission lock.
+  return <RecipeForm
+    key={recipeFormKey(props.recipe?.id, draft, formVersion)}
+    {...props}
+    draft={draft}
+    onSubmitted={() => setFormVersion(version => version + 1)}
+  />;
+}
+
+function RecipeForm({
   presetImages,
-  recipe,
+  recipe: originalRecipe,
+  draft,
+  onSubmitted,
 }: {
   presetImages: PresetRecipeImage[];
   recipe?: Recipe;
+  draft?: RecipeSaveOperation;
+  onSubmitted: () => void;
 }) {
+  const recipe = draft?.recipe ?? originalRecipe;
+  const { enqueue, operations } = useRecipeSaves();
   const t = useTranslations("Recipe");
   const errors = useTranslations("Errors");
   const locale = useLocale();
@@ -55,8 +75,8 @@ export function CreateRecipeForm({
       : "",
   );
   const [imageValue, setImageValue] = useState(recipe?.image_value ?? "");
-  const [imageChanged, setImageChanged] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageChanged, setImageChanged] = useState(draft?.data.get("image_changed") === "true");
+  const [imageFile, setImageFile] = useState<File | null>(draft?.imageFile ?? null);
   const [imageError, setImageError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const displayedImage =
@@ -79,128 +99,36 @@ export function CreateRecipeForm({
     return () => URL.revokeObjectURL(url);
   }, [imageFile]);
 
-  async function saveWithImage(
-    previousState: { error: string | null },
-    data: FormData,
-  ) {
-    let uploadedPath: string | null = null;
+  const [error, setError] = useState<string | null>(null);
+  const submitted = useRef(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const isPending = isSubmitted || operations.some((operation) =>
+    operation.status === "saving" && operation.key === (originalRecipe?.id ?? draft?.key),
+  );
 
-    if (imageSource === "upload" && imageFile) {
-      if (!acceptedImageTypes.includes(imageFile.type)) {
-        return { error: errors("invalidImageType") };
-      }
-      if (imageFile.size > maxSourceImageSize) {
-        return { error: errors("imageTooLarge") };
-      }
-
-      try {
-        let compressed = await imageCompression(imageFile, {
-          fileType: "image/webp",
-          maxSizeMB: 1,
-          maxWidthOrHeight: 1600,
-          useWebWorker: true,
-        });
-        // Some browsers can display WebP but cannot encode it with canvas.
-        if (compressed.type !== "image/webp") {
-          compressed = await imageCompression(imageFile, {
-            fileType: "image/jpeg",
-            maxSizeMB: 1,
-            maxWidthOrHeight: 1600,
-            useWebWorker: true,
-          });
-        }
-        if (!["image/webp", "image/jpeg"].includes(compressed.type)) {
-          return { error: errors("imageCompressionFailed") };
-        }
-        if (compressed.size === 0 || compressed.size > 2 * 1024 * 1024) {
-          return { error: errors("imageCompressionFailed") };
-        }
-        const supabase = createClient();
-        const { data: auth, error: authError } = await supabase.auth.getUser();
-        if (authError || !auth.user) {
-          return { error: errors("signInToSave") };
-        }
-
-        const extension = compressed.type === "image/webp" ? "webp" : "jpg";
-        uploadedPath = `${auth.user.id}/${crypto.randomUUID()}.${extension}`;
-        const { error: uploadError } = await supabase.storage
-          .from(RECIPE_IMAGES_BUCKET)
-          .upload(uploadedPath, compressed, {
-            cacheControl: "31536000",
-            contentType: compressed.type,
-            upsert: false,
-          });
-        if (uploadError) {
-          console.error("Recipe image upload failed", {
-            message: uploadError.message,
-            type: compressed.type,
-            size: compressed.size,
-          });
-          return {
-            error: `${errors("imageUploadFailed")} ${uploadError.message}`,
-          };
-        }
-
-        data.set("image_source", "upload");
-        data.set("image_value", uploadedPath);
-        data.set("image_changed", "true");
-      } catch (error) {
-        console.error("Recipe image preparation or upload failed", error);
-        return { error: errors("imageCompressionFailed") };
-      }
-    } else {
-      if (imageSource === "upload" && !imageValue) {
-        return { error: errors("imageRequired") };
-      }
-      data.set("image_source", imageSource);
-      data.set("image_value", imageSource ? imageValue : "");
+  function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (submitted.current || isPending) return;
+    const data = new FormData(event.currentTarget);
+    const validationError = validateRecipeDraft(data, imageFile);
+    if (validationError) {
+      setError(errors(validationError));
+      return;
     }
-
-    let result;
-    try {
-      result = await saveRecipe(
-        recipe?.id ?? null,
-        locale,
-        previousState,
-        data,
-      );
-    } catch {
-      // A lost response does not mean the save failed. Leave the image intact
-      // because the server may still be attaching it to the recipe.
-      return { error: errors("saveFailed") };
+    const result = enqueue({ data, imageFile, recipeId: originalRecipe?.id ?? null, draftKey: draft?.key,
+      existingImageUrl: recipe?.image_url ?? null });
+    if (result.error) {
+      setError(result.error);
+      return;
     }
-
-    if (result?.error && uploadedPath) {
-      try {
-        if (!(await cleanupUnusedRecipeImage(uploadedPath))) {
-          console.error("Could not clean up failed recipe upload");
-        }
-      } catch (error) {
-        console.error("Could not clean up failed recipe upload", error);
-      }
-    }
-    if (!result.error) {
-      if (!recipe) {
-        // Clear React state too, so a reused new-recipe form starts empty.
-        setImageSource("");
-        setImageValue("");
-        setImageFile(null);
-        setImageChanged(false);
-        setImageError(null);
-        setPreviewUrl(null);
-      }
-      router.push(recipe ? `/${locale}/recipes/${recipe.id}` : `/${locale}`);
-      router.refresh();
-    }
-    return result;
+    submitted.current = true;
+    setIsSubmitted(true);
+    onSubmitted();
+    router.push(`/${locale}`);
   }
 
-  const [state, formAction, isPending] = useActionState(saveWithImage, {
-    error: null,
-  });
-
   return (
-    <form action={formAction} className="mt-6 grid max-w-xl gap-4">
+    <form onSubmit={submit} className="mt-6 grid max-w-xl gap-4">
       <fieldset className="grid min-w-0 gap-2" disabled={isPending}>
         <legend className="sr-only">{t("image")}</legend>
         <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
@@ -427,7 +355,7 @@ export function CreateRecipeForm({
         removeLabel={(tag) => t("removeTag", { tag })}
       />
 
-      {state.error && <p className="text-sm text-destructive">{state.error}</p>}
+      {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
 
       <div className="flex w-full justify-end">
         <Button
@@ -436,7 +364,7 @@ export function CreateRecipeForm({
           icon={<Bookmark />}
           type="submit"
         >
-          {isPending ? t("saving") : recipe ? t("save") : t("create")}
+          {isPending ? t("saving") : originalRecipe ? t("save") : t("create")}
         </Button>
       </div>
     </form>
@@ -472,7 +400,7 @@ function Field({
           )}
         </span>
       </Label>
-      <Input id={name} name={name} {...props} />
+      <Input id={name} name={name} required={required} {...props} />
     </div>
   );
 }

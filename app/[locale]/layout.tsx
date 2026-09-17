@@ -4,6 +4,7 @@ import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
+import { RecipeSaveProvider } from "@/components/recipe-save-provider";
 import { AppFooter } from "@/components/app-footer";
 import "../globals.css";
 
@@ -53,7 +54,7 @@ export default async function RootLayout({
         <script async fetchPriority="high" src="/theme-init.js" />
         <NextIntlClientProvider messages={messages}>
           <div className="mx-auto flex min-h-svh w-full max-w-3xl flex-col px-4 sm:px-6">
-            {children}
+            <RecipeSaveProvider>{children}</RecipeSaveProvider>
             <AppFooter className="hidden md:flex" />
           </div>
         </NextIntlClientProvider>

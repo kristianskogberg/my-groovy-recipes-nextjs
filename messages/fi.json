@@ -19,6 +19,7 @@
   },
   "Recipe": {
     "createTitle": "Luo resepti",
+    "editDraft": "Muokkaa luonnosta",
     "editTitle": "Muokkaa reseptiä",
     "name": "Nimi",
     "image": "Kuva",
@@ -50,6 +51,7 @@
     "edit": "Muokkaa",
     "delete": "Poista",
     "deleting": "Poistetaan...",
+    "retryDelete": "Yritä poistoa uudelleen",
     "deleteConfirm": "Poistetaanko tämä resepti? Toimintoa ei voi perua."
   },
   "Auth": {
@@ -82,6 +84,9 @@
     "codeError": "Virhe: {error}"
   },
   "Errors": {
+    "creationConflict": "Resepti on jo tallennettu, mutta luonnoksessasi on eri muutoksia. Luonnos on säilytetty. Tarkista se ja tallenna uudelleen päivittääksesi reseptin.",
+    "saveInProgress": "Reseptiä tallennetaan vielä. Muutoksesi säilyvät lomakkeessa. Yritä uudelleen tallennuksen valmistuttua.",
+    "saveDuringDelete": "Reseptiä poistetaan. Muutoksesi säilyvät lomakkeessa.",
     "passwordMismatch": "Salasanat eivät täsmää",
     "generic": "Jokin meni pieleen.",
     "signInToSave": "Kirjaudu sisään tallentaaksesi reseptin.",
