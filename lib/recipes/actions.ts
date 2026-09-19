@@ -14,7 +14,8 @@ const lines = (value: FormDataEntryValue | null) =>
     .filter(Boolean);
 
 function optionalNumber(value: FormDataEntryValue | null) {
-  return value === null || value === "" ? null : Number(value);
+  const text = String(value ?? "").trim();
+  return text === "" ? null : Number(text);
 }
 
 /**
@@ -62,12 +63,17 @@ export async function saveRecipe(
   }
 
   const name = String(data.get("name") ?? "").trim();
-  const servings = Number(data.get("servings"));
+  const ingredients = lines(data.get("ingredients"));
+  const servings = optionalNumber(data.get("servings"));
   const timeMinutes = optionalNumber(data.get("time_minutes"));
   const calories = optionalNumber(data.get("calories_per_serving"));
 
-  if (!name || !Number.isFinite(servings) || servings <= 0) {
+  if (!name || ingredients.length === 0) {
     return { error: t("invalidRecipe") };
+  }
+
+  if (servings !== null && (!Number.isFinite(servings) || servings <= 0)) {
+    return { error: t("invalidServings") };
   }
 
   if (
@@ -133,7 +139,7 @@ export async function saveRecipe(
     calories_per_serving: calories,
     image_source: imageSource,
     image_value: imageValue,
-    ingredients: lines(data.get("ingredients")),
+    ingredients,
     steps: lines(data.get("steps")),
     tags: String(data.get("tags") ?? "")
       .split(",")

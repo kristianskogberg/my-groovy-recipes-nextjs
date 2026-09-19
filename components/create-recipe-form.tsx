@@ -331,12 +331,11 @@ function RecipeForm({
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Field
-          defaultValue={recipe?.servings}
+          defaultValue={recipe?.servings ?? ""}
           icon={<UserRound />}
           label={t("servings")}
           min="0.01"
           name="servings"
-          required
           step="any"
           type="number"
         />
@@ -363,6 +362,7 @@ function RecipeForm({
         label={t("ingredients")}
         name="ingredients"
         placeholder={t("ingredientsPlaceholder")}
+        required
       />
       <TextList
         defaultValue={recipe?.steps.join("\n")}
@@ -433,19 +433,25 @@ function TextList({
   label,
   name,
   placeholder,
+  required,
 }: {
   defaultValue?: string;
   label: string;
   name: string;
   placeholder: string;
+  required?: boolean;
 }) {
   return (
     <label className="grid gap-2">
-      <span className="text-sm font-medium">{label}</span>
+      <span className="text-sm font-medium">
+        {label}
+        {required && <span className="text-accent" aria-hidden="true"> *</span>}
+      </span>
       <Textarea
         defaultValue={defaultValue}
         name={name}
         placeholder={placeholder}
+        required={required}
       />
     </label>
   );
