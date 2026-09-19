@@ -7,14 +7,12 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 
-/** Trim a multiline field and discard blank entries. */
 const lines = (value: FormDataEntryValue | null) =>
   String(value ?? "")
     .split("\n")
     .map((item) => item.trim())
     .filter(Boolean);
 
-/** Keep an empty optional number as null; validation happens in saveRecipe. */
 function optionalNumber(value: FormDataEntryValue | null) {
   return value === null || value === "" ? null : Number(value);
 }
@@ -39,12 +37,14 @@ async function removeRecipeImage(
 /**
  * Save recipe or update existing recipe.
  * @param recipeId ID of the recipe to update, or null to create a new recipe.
+ * @param _state The current state of the recipe.
  * @param data FormData object containing the recipe data to save.
- * @returns The canonical saved recipe, or a validation/persistence error.
+ * @returns The saved recipe or a validation/persistence error.
  */
 export async function saveRecipe(
   recipeId: string | null,
   locale: string,
+  _state: RecipeActionState,
   data: FormData,
 ): Promise<SaveRecipeResult> {
   const t = await getTranslations({ locale, namespace: "Errors" });
@@ -53,6 +53,12 @@ export async function saveRecipe(
 
   if (authError || !auth.user) {
     return { error: t("signInToSave") };
+  }
+
+  // A stable client UUID makes retried creates target the same database row.
+  const creationId = String(data.get("creation_id") ?? "");
+  if (!recipeId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(creationId)) {
+    return { error: t("invalidRecipe") };
   }
 
   const name = String(data.get("name") ?? "").trim();
@@ -135,7 +141,7 @@ export async function saveRecipe(
       .filter(Boolean),
   };
 
-  const { data: savedRecipe, error } = recipeId
+  let { data: savedRecipe, error } = recipeId
     ? await supabase
         .from("recipes")
         .update({ ...values, updated_at: new Date().toISOString() })
@@ -145,9 +151,30 @@ export async function saveRecipe(
         .single()
     : await supabase
         .from("recipes")
-        .insert({ ...values, user_id: auth.user.id })
+        .insert({ ...values, id: creationId, user_id: auth.user.id })
         .select("id, name, description, servings, time_minutes, calories_per_serving, image_source, image_value, ingredients, steps, tags")
         .single();
+
+  if (!recipeId && error?.code === "23505") {
+    // The original response may have been lost. Return the committed creation;
+    // never overwrite a later edit when replaying an old create request.
+    const existing = await supabase.from("recipes")
+      .select("id, name, description, servings, time_minutes, calories_per_serving, image_source, image_value, ingredients, steps, tags")
+      .eq("id", creationId).eq("user_id", auth.user.id).single();
+    if (existing.data && !existing.error) {
+      const existingRecipe = existing.data;
+      const sameDraft = Object.entries(values).every(([key, value]) =>
+        key === "servings" ? Number(existingRecipe.servings) === Number(value) :
+          JSON.stringify(existingRecipe[key as keyof typeof existingRecipe]) === JSON.stringify(value));
+      if (!sameDraft) {
+        // Keep revised recovery content instead of treating it as a replay.
+        // The next explicit save goes through the normal update path.
+        return { error: t("creationConflict"), existingRecipeId: existingRecipe.id };
+      }
+    }
+    savedRecipe = existing.data;
+    error = existing.error;
+  }
 
   if (error || !savedRecipe) {
     return { error: error?.message ?? t("saveFailed") };
@@ -166,22 +193,22 @@ export async function saveRecipe(
   }
 
   revalidatePath(`/${locale}`);
-  if (recipeId) revalidatePath(`/${locale}/recipes/${recipeId}`);
-  return {
-    error: null,
-    recipe: {
-      ...savedRecipe,
-      image_url: savedRecipe.image_source === "upload" && savedRecipe.image_value
-        ? getUploadedRecipeImageUrl(supabase.storage, savedRecipe.image_value)
-        : savedRecipe.image_value,
-    },
-  };
+  if (recipeId) {
+    revalidatePath(`/${locale}/recipes/${recipeId}`);
+    revalidatePath(`/${locale}/recipes/${recipeId}/edit`);
+  }
+  return { error: null, recipe: {
+    ...savedRecipe,
+    image_url: savedRecipe.image_source === "upload" && savedRecipe.image_value
+      ? getUploadedRecipeImageUrl(supabase.storage, savedRecipe.image_value)
+      : savedRecipe.image_value,
+  } };
 }
 
 /**
  * Delete a recipe by its ID.
  * @param id ID of the recipe to delete.
- * @returns An error or success; the client handles navigation and optimistic rollback.
+ * @returns A Promise that resolves to the updated RecipeActionState.
  */
 export async function deleteRecipe(
   id: string,
@@ -202,30 +229,24 @@ export async function deleteRecipe(
     .eq("user_id", auth.user.id)
     .maybeSingle();
 
-  if (recipeError || !recipe) {
-    return { error: recipeError?.message ?? t("deleteFailed") };
+  if (recipeError) return { error: recipeError.message };
+  // A repeated delete after a lost response is already successful.
+  if (!recipe) {
+    revalidatePath(`/${locale}`);
+    revalidatePath(`/${locale}/recipes/${id}`);
+    return { error: null };
   }
 
   const uploadedPath = recipe.image_value?.startsWith(`${auth.user.id}/`)
     ? recipe.image_value
     : null;
 
-  if (uploadedPath) {
-    try {
-      await removeRecipeImage(supabase, uploadedPath);
-    } catch (error) {
-      console.error("Could not remove deleted recipe image", error);
-      return { error: t("imageDeleteFailed") };
-    }
-  }
-
   const { error } = await supabase
     .from("recipes")
     .delete()
     .eq("id", id)
     .eq("user_id", auth.user.id)
-    .select("id")
-    .single();
+    .select("id");
 
   if (error) {
     return { error: error.message ?? t("deleteFailed") };
@@ -233,6 +254,18 @@ export async function deleteRecipe(
 
   revalidatePath(`/${locale}`);
   revalidatePath(`/${locale}/recipes/${id}`);
+  // Storage cleanup cannot roll back a committed deletion. Retry transient
+  // failures without reporting the recipe deletion itself as failed.
+  if (uploadedPath) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await removeRecipeImage(supabase, uploadedPath);
+        break;
+      } catch (error) {
+        if (attempt === 2) console.error("Could not remove deleted recipe image after retries", error);
+      }
+    }
+  }
   return { error: null };
 }
 
@@ -262,4 +295,14 @@ export async function cleanupUnusedRecipeImage(path: string): Promise<boolean> {
     console.error("Could not clean up unused recipe image", error);
     return false;
   }
+}
+
+/** Fresh, authenticated verification after an uncertain delete response. */
+export async function confirmRecipeDeleted(id: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { data: auth, error: authError } = await supabase.auth.getUser();
+  if (authError || !auth.user) return false;
+  const { data, error } = await supabase.from("recipes").select("id")
+    .eq("id", id).eq("user_id", auth.user.id).maybeSingle();
+  return !error && data === null;
 }

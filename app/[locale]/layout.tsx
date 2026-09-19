@@ -1,11 +1,12 @@
-import { RecipeMutationProvider } from "@/components/recipe-mutation-provider";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { DM_Sans, Fraunces } from "next/font/google";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
+import { RecipeSaveProvider } from "@/components/recipe-save-provider";
 import { AppFooter } from "@/components/app-footer";
+import appleScreens from "@/lib/pwa/apple-screens.json";
 import "../globals.css";
 
 export const metadata: Metadata = {
@@ -20,7 +21,19 @@ export const metadata: Metadata = {
     capable: true,
     title: "Groovy Recipes",
     statusBarStyle: "default",
+    startupImage: appleScreens.flatMap(({ width, height, scale }) =>
+      ["portrait", "landscape"].map(orientation => ({
+        url: `/splash/${(orientation === "portrait" ? width : height) * scale}x${(orientation === "portrait" ? height : width) * scale}.png`,
+        media: `(device-width: ${width}px) and (device-height: ${height}px) and (-webkit-device-pixel-ratio: ${scale}) and (orientation: ${orientation})`,
+      })),
+    ),
   },
+  // Next emits mobile-web-app-capable; retain Apple's tag for iOS launch images.
+  other: { "apple-mobile-web-app-capable": "yes" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#fbf4e7",
 };
 
 const dmSans = DM_Sans({
@@ -59,7 +72,7 @@ export default async function RootLayout({
         <script async fetchPriority="high" src="/theme-init.js" />
         <NextIntlClientProvider messages={messages}>
           <div className="mx-auto flex min-h-svh w-full max-w-3xl flex-col px-4 sm:px-6">
-            <RecipeMutationProvider>{children}</RecipeMutationProvider>
+            <RecipeSaveProvider>{children}</RecipeSaveProvider>
             <AppFooter className="hidden md:flex" />
           </div>
         </NextIntlClientProvider>

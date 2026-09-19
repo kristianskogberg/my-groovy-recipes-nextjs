@@ -18,10 +18,8 @@
     "greeting": "Hei, {email}!"
   },
   "Recipe": {
-    "activity": "Reseptien tila",
-    "returnToForm": "Palaa lomakkeelle",
-    "dismiss": "Sulje",
     "createTitle": "Luo resepti",
+    "editDraft": "Muokkaa luonnosta",
     "editTitle": "Muokkaa reseptiä",
     "name": "Nimi",
     "image": "Kuva",
@@ -53,6 +51,7 @@
     "edit": "Muokkaa",
     "delete": "Poista",
     "deleting": "Poistetaan...",
+    "retryDelete": "Yritä poistoa uudelleen",
     "deleteConfirm": "Poistetaanko tämä resepti? Toimintoa ei voi perua."
   },
   "Auth": {
@@ -85,8 +84,9 @@
     "codeError": "Virhe: {error}"
   },
   "Errors": {
-    "saveUnconfirmed": "Tallennusta ei voitu vahvistaa. Tarkista reseptisi ennen uutta tallennusta, jotta resepti ei tallennu kahdesti.",
-    "deleteUnconfirmed": "Poistoa ei voitu vahvistaa. Tarkista reseptisi ennen uutta yritystä.",
+    "creationConflict": "Resepti on jo tallennettu, mutta luonnoksessasi on eri muutoksia. Luonnos on säilytetty. Tarkista se ja tallenna uudelleen päivittääksesi reseptin.",
+    "saveInProgress": "Reseptiä tallennetaan vielä. Muutoksesi säilyvät lomakkeessa. Yritä uudelleen tallennuksen valmistuttua.",
+    "saveDuringDelete": "Reseptiä poistetaan. Muutoksesi säilyvät lomakkeessa.",
     "passwordMismatch": "Salasanat eivät täsmää",
     "generic": "Jokin meni pieleen.",
     "signInToSave": "Kirjaudu sisään tallentaaksesi reseptin.",

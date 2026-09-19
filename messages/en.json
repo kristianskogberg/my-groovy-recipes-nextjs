@@ -18,10 +18,8 @@
     "greeting": "Hey, {email}!"
   },
   "Recipe": {
-    "activity": "Recipe activity",
-    "returnToForm": "Return to form",
-    "dismiss": "Dismiss",
     "createTitle": "Create a recipe",
+    "editDraft": "Edit draft",
     "editTitle": "Edit recipe",
     "name": "Name",
     "image": "Image",
@@ -53,6 +51,7 @@
     "edit": "Edit",
     "delete": "Delete",
     "deleting": "Deleting...",
+    "retryDelete": "Retry deletion",
     "deleteConfirm": "Delete this recipe? This cannot be undone."
   },
   "Auth": {
@@ -85,8 +84,9 @@
     "codeError": "Code error: {error}"
   },
   "Errors": {
-    "saveUnconfirmed": "Saving could not be confirmed. Check your recipes before submitting again to avoid duplicates.",
-    "deleteUnconfirmed": "Deletion could not be confirmed. Check your recipes before trying again.",
+    "creationConflict": "This recipe was already saved, but your draft has different changes. Your draft is kept. Review it and save again to update the recipe.",
+    "saveInProgress": "This recipe is still saving. Your changes are kept in the form. Try again when saving finishes.",
+    "saveDuringDelete": "This recipe is being deleted. Your changes are kept in the form.",
     "passwordMismatch": "Passwords do not match",
     "generic": "Something went wrong.",
     "signInToSave": "You must be signed in to save a recipe.",

@@ -41,5 +41,5 @@ export type PresetRecipeImage = { label: string; value: string };
 export type RecipeActionState = { error: string | null };
 
 export type SaveRecipeResult =
-  | { error: string; recipe?: never }
+  | { error: string; recipe?: never; existingRecipeId?: string }
   | { error: null; recipe: Recipe };

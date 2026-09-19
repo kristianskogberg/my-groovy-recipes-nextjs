@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TagInput } from "@/components/ui/tag-input";
 import { Textarea } from "@/components/ui/textarea";
-import { useRecipeMutations } from "@/components/recipe-mutation-provider";
-import type { RecipeDraft } from "@/lib/recipes/optimistic";
+import { useRecipeSaves } from "@/components/recipe-save-provider";
+import { recipeFormKey, validateRecipeDraft, type RecipeSaveOperation } from "@/lib/recipes/optimistic";
 import { acceptedImageTypes, maxSourceImageSize } from "@/lib/recipes/save-with-image";
 import type { PresetRecipeImage, Recipe } from "@/lib/recipes/types";
 import Image from "next/image";
@@ -21,37 +21,68 @@ import {
   X,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
 type ImageSource = "" | "preset" | "upload";
 
-type FormProps = { presetImages: PresetRecipeImage[]; recipe?: Recipe };
+/**
+ * A form for creating or editing a recipe.
+ * @param recipe - The recipe to edit, if it exists.
+ * @returns A React component.
+ */
+export function CreateRecipeForm(props: { presetImages: PresetRecipeImage[]; recipe?: Recipe }) {
+  const { operations } = useRecipeSaves();
+  const recoveryKey = useSearchParams().get("draft");
+  const [formVersion, setFormVersion] = useState(0);
+  const submitted = useRef(false);
+  const [submittedForm, setSubmittedForm] = useState<{
+    key: string;
+    recipe?: Recipe;
+    draft?: RecipeSaveOperation;
+  } | null>(null);
+  const draft = operations.find((operation) => operation.key === recoveryKey &&
+    operation.status === "failed" &&
+    operation.recipeId === (props.recipe?.id ?? null));
+  const initialForm = submittedForm ?? {
+    key: `${recipeFormKey(props.recipe?.id, draft, formVersion)}:${JSON.stringify(props.recipe)}`,
+    recipe: props.recipe,
+    draft,
+  };
 
-/** Restore a requested failed draft, or reset the new form after a successful create. */
-export function CreateRecipeForm(props: FormProps) {
-  const search = useSearchParams();
-  const { mutations, newRecipeFormVersion } = useRecipeMutations();
-  const recovered = mutations.find(item => item.key === search.get("draft") &&
-    item.status === "failed" && item.recipeId === (props.recipe?.id ?? null));
-  const formKey = props.recipe
-    ? search.get("draft") ?? props.recipe.id
-    : `${search.get("draft") ?? "new"}:${newRecipeFormVersion}`;
-  return <RecipeForm key={formKey} {...props}
-    recoveredKey={recovered?.key} draft={recovered?.draft} />;
+  // Activity runs layout-effect cleanup when navigation hides this page.
+  // Reset a submitted form only then, never while the user can still see it.
+  useLayoutEffect(() => () => {
+    if (!submitted.current) return;
+    submitted.current = false;
+    setSubmittedForm(null);
+    setFormVersion(version => version + 1);
+  }, []);
+
+  return <RecipeForm
+    key={initialForm.key}
+    {...props}
+    recipe={initialForm.recipe}
+    draft={initialForm.draft}
+    onSubmitted={() => {
+      submitted.current = true;
+      setSubmittedForm(initialForm);
+    }}
+  />;
 }
 
-/** Hold editable fields and image choices; the provider owns the submitted snapshot. */
-function RecipeForm({ presetImages, recipe, draft: initialDraft, recoveredKey }: FormProps & {
-  draft?: RecipeDraft;
-  recoveredKey?: string;
+function RecipeForm({
+  presetImages,
+  recipe: originalRecipe,
+  draft,
+  onSubmitted,
+}: {
+  presetImages: PresetRecipeImage[];
+  recipe?: Recipe;
+  draft?: RecipeSaveOperation;
+  onSubmitted: () => void;
 }) {
-  // Dismissing the recovery notice must not reset a form already being edited.
-  const [draft] = useState(initialDraft);
-  const { save, isPending: recipeIsPending } = useRecipeMutations();
-  const isPending = recipeIsPending(recipe?.id ?? null);
-  const [error, setError] = useState<string | null>(null);
-  /** Use the raw failed value when present; otherwise let the field use its recipe default. */
-  const restored = (name: string) => draft ? String(draft.data.get(name) ?? "") : undefined;
+  const recipe = draft?.recipe ?? originalRecipe;
+  const { enqueue, operations } = useRecipeSaves();
   const t = useTranslations("Recipe");
   const errors = useTranslations("Errors");
   const locale = useLocale();
@@ -62,10 +93,12 @@ function RecipeForm({ presetImages, recipe, draft: initialDraft, recoveredKey }:
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageId = useId();
   const [imageSource, setImageSource] = useState<ImageSource>(
-    (restored("image_source") ?? recipe?.image_source ?? "") as ImageSource,
+    recipe?.image_source === "preset" || recipe?.image_source === "upload"
+      ? recipe.image_source
+      : "",
   );
-  const [imageValue, setImageValue] = useState(restored("image_value") ?? recipe?.image_value ?? "");
-  const [imageChanged, setImageChanged] = useState(restored("image_changed") === "true");
+  const [imageValue, setImageValue] = useState(recipe?.image_value ?? "");
+  const [imageChanged, setImageChanged] = useState(draft?.data.get("image_changed") === "true");
   const [imageFile, setImageFile] = useState<File | null>(draft?.imageFile ?? null);
   const [imageError, setImageError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -85,41 +118,40 @@ function RecipeForm({ presetImages, recipe, draft: initialDraft, recoveredKey }:
     }
 
     const url = URL.createObjectURL(imageFile);
-    let cancelled = false;
-    // Decode large device photos before painting them so the form stays responsive.
-    const preview = new window.Image();
-    preview.decoding = "async";
-    preview.src = url;
-    void preview.decode().then(() => {
-      if (!cancelled) setPreviewUrl(url);
-    }).catch(() => {
-      // Let the image element handle formats that cannot be predecoded.
-      if (!cancelled) setPreviewUrl(url);
-    });
-    return () => {
-      cancelled = true;
-      URL.revokeObjectURL(url);
-    };
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
   }, [imageFile]);
 
-  useEffect(() => {
-    router.prefetch(`/${locale}`);
-  }, [router, locale]);
+  const [error, setError] = useState<string | null>(null);
+  const submitted = useRef(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const isPending = isSubmitted || operations.some((operation) =>
+    operation.status === "saving" && operation.key === (originalRecipe?.id ?? draft?.key),
+  );
 
-  /** Snapshot the valid form and hand it to the provider before this page is left. */
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isPending) return;
+    if (submitted.current || isPending) return;
     const data = new FormData(event.currentTarget);
-    if (!String(data.get("name") ?? "").trim()) {
-      setError(errors("invalidRecipe"));
+    const validationError = validateRecipeDraft(data, imageFile);
+    if (validationError) {
+      setError(errors(validationError));
       return;
     }
-    save({ data, imageFile, original: recipe }, recoveredKey);
+    const result = enqueue({ data, imageFile, recipeId: originalRecipe?.id ?? null, draftKey: draft?.key,
+      existingImageUrl: recipe?.image_url ?? null });
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    submitted.current = true;
+    setIsSubmitted(true);
+    onSubmitted();
+    router.push(`/${locale}`);
   }
 
   return (
-    <form onSubmit={submit} className="mt-6 grid max-w-xl gap-4">
+    <form onSubmit={submit} className="mt-6 grid max-w-xl gap-4" aria-busy={isPending}>
       <fieldset className="grid min-w-0 gap-2" disabled={isPending}>
         <legend className="sr-only">{t("image")}</legend>
         <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
@@ -130,8 +162,6 @@ function RecipeForm({ presetImages, recipe, draft: initialDraft, recoveredKey }:
               fill
               sizes="(max-width: 640px) 100vw, 576px"
               src={displayedImage}
-              decoding="async"
-              loading="eager"
               unoptimized={imageSource === "upload" && Boolean(imageFile)}
             />
           ) : (
@@ -289,19 +319,19 @@ function RecipeForm({ presetImages, recipe, draft: initialDraft, recoveredKey }:
       <input name="image_changed" type="hidden" value={String(imageChanged)} />
 
       <Field
-        defaultValue={restored("name") ?? recipe?.name}
+        defaultValue={recipe?.name}
         label={t("name")}
         name="name"
         required
       />
       <label className="grid gap-2">
         <span className="text-sm font-medium">{t("description")}</span>
-        <Textarea defaultValue={restored("description") ?? recipe?.description ?? ""} name="description" />
+        <Textarea defaultValue={recipe?.description ?? ""} name="description" />
       </label>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Field
-          defaultValue={restored("servings") ?? recipe?.servings}
+          defaultValue={recipe?.servings}
           icon={<UserRound />}
           label={t("servings")}
           min="0.01"
@@ -311,7 +341,7 @@ function RecipeForm({ presetImages, recipe, draft: initialDraft, recoveredKey }:
           type="number"
         />
         <Field
-          defaultValue={restored("calories_per_serving") ?? recipe?.calories_per_serving ?? ""}
+          defaultValue={recipe?.calories_per_serving ?? ""}
           icon={<Flame />}
           label={t("calories")}
           min="0"
@@ -319,7 +349,7 @@ function RecipeForm({ presetImages, recipe, draft: initialDraft, recoveredKey }:
           type="number"
         />
         <Field
-          defaultValue={restored("time_minutes") ?? recipe?.time_minutes ?? ""}
+          defaultValue={recipe?.time_minutes ?? ""}
           icon={<Clock />}
           label={t("time")}
           min="0"
@@ -329,19 +359,19 @@ function RecipeForm({ presetImages, recipe, draft: initialDraft, recoveredKey }:
       </div>
 
       <TextList
-        defaultValue={restored("ingredients") ?? recipe?.ingredients.join("\n")}
+        defaultValue={recipe?.ingredients.join("\n")}
         label={t("ingredients")}
         name="ingredients"
         placeholder={t("ingredientsPlaceholder")}
       />
       <TextList
-        defaultValue={restored("steps") ?? recipe?.steps.join("\n")}
+        defaultValue={recipe?.steps.join("\n")}
         label={t("steps")}
         name="steps"
         placeholder={t("stepsPlaceholder")}
       />
       <TagInput
-        defaultValue={draft ? restored("tags")?.split(",").filter(Boolean) : recipe?.tags}
+        defaultValue={recipe?.tags}
         label={t("tags")}
         name="tags"
         placeholder={t("tagsPlaceholder")}
@@ -357,14 +387,13 @@ function RecipeForm({ presetImages, recipe, draft: initialDraft, recoveredKey }:
           icon={<Bookmark />}
           type="submit"
         >
-          {isPending ? t("saving") : recipe ? t("save") : t("create")}
+          {isPending ? t("saving") : originalRecipe ? t("save") : t("create")}
         </Button>
       </div>
     </form>
   );
 }
 
-/** Render a labeled input, including native browser validation such as required. */
 function Field({
   icon,
   label,
@@ -399,7 +428,6 @@ function Field({
   );
 }
 
-/** Edit an ingredient or step list as one item per line. */
 function TextList({
   defaultValue,
   label,

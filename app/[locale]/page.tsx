@@ -1,4 +1,4 @@
-import { getRecipes } from "@/lib/recipes/queries";
+import { RecipeListClient } from "@/components/recipe-list-client";
 import { RecipeList } from "@/components/recipe-list";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
@@ -32,14 +32,10 @@ export default async function Home({
             <Link href="/recipes/new">{t("newRecipe")}</Link>
           </Button>
         </div>
-        <Suspense fallback={<p>{t("loading")}</p>}>
-          <Recipes />
+        <Suspense fallback={<RecipeListClient loading />}>
+          <RecipeList />
         </Suspense>
       </section>
     </main>
   );
-}
-
-async function Recipes() {
-  return <RecipeList recipes={await getRecipes()} />;
 }

@@ -1,3 +1,5 @@
+"use client";
+
 import { Clock, Flame, UserRound } from "lucide-react";
 import { useTranslations } from "next-intl";
 

@@ -1,28 +1,20 @@
 import { cleanupUnusedRecipeImage, saveRecipe } from "@/lib/recipes/actions";
 import { RECIPE_IMAGES_BUCKET } from "@/lib/recipes/storage";
 import type { SaveRecipeResult } from "@/lib/recipes/types";
-import type { RecipeDraft } from "@/lib/recipes/optimistic";
 import { createClient } from "@/lib/supabase/client";
 import imageCompression from "browser-image-compression";
-import type messages from "@/messages/en.json";
 
 export const acceptedImageTypes = ["image/jpeg", "image/png", "image/webp"];
 export const maxSourceImageSize = 10 * 1024 * 1024;
 
-/**
- * Compress/upload a selected file, then save a copy of the draft through the server action.
- * isCurrent stops further work after an account change. Lost responses preserve the upload.
- */
-export async function saveWithImage(
-  draft: RecipeDraft,
+/** Runs in the browser, owned by the shared provider rather than the form. */
+export async function saveRecipeWithImage(
+  recipeId: string | null,
   locale: string,
-  errors: (key: keyof typeof messages.Errors) => string,
-  isCurrent: () => boolean,
-): Promise<SaveRecipeResult | { error: string; uncertain: true }> {
-  const data = new FormData();
-  draft.data.forEach((value, key) => data.append(key, value));
-  const recipe = draft.original;
-  const imageFile = draft.imageFile;
+  data: FormData,
+  imageFile: File | null,
+  errors: (key: string) => string,
+): Promise<SaveRecipeResult> {
   const imageSource = String(data.get("image_source") ?? "");
   const imageValue = String(data.get("image_value") ?? "");
   let uploadedPath: string | null = null;
@@ -63,8 +55,6 @@ export async function saveWithImage(
         return { error: errors("signInToSave") };
       }
 
-      if (!isCurrent()) return { error: errors("signInToSave") };
-
       const extension = compressed.type === "image/webp" ? "webp" : "jpg";
       uploadedPath = `${auth.user.id}/${crypto.randomUUID()}.${extension}`;
       const { error: uploadError } = await supabase.storage
@@ -100,22 +90,21 @@ export async function saveWithImage(
     data.set("image_value", imageSource ? imageValue : "");
   }
 
-  if (!isCurrent()) return { error: errors("signInToSave") };
-
   let result;
   try {
     result = await saveRecipe(
-      recipe?.id ?? null,
+      recipeId,
       locale,
+      { error: null },
       data,
     );
   } catch {
     // A lost response does not mean the save failed. Leave the image intact
     // because the server may still be attaching it to the recipe.
-    return { error: errors("saveUnconfirmed"), uncertain: true };
+    return { error: errors("saveFailed") };
   }
 
-  if (result?.error && uploadedPath) {
+  if (uploadedPath && (result.error !== null || result.recipe.image_value !== uploadedPath)) {
     try {
       if (!(await cleanupUnusedRecipeImage(uploadedPath))) {
         console.error("Could not clean up failed recipe upload");
