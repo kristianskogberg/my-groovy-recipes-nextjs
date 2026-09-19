@@ -6,8 +6,15 @@ import { Label } from "@/components/ui/label";
 import { TagInput } from "@/components/ui/tag-input";
 import { Textarea } from "@/components/ui/textarea";
 import { useRecipeSaves } from "@/components/recipe-save-provider";
-import { recipeFormKey, validateRecipeDraft, type RecipeSaveOperation } from "@/lib/recipes/optimistic";
-import { acceptedImageTypes, maxSourceImageSize } from "@/lib/recipes/save-with-image";
+import {
+  recipeFormKey,
+  validateRecipeDraft,
+  type RecipeSaveOperation,
+} from "@/lib/recipes/optimistic";
+import {
+  acceptedImageTypes,
+  maxSourceImageSize,
+} from "@/lib/recipes/save-with-image";
 import type { PresetRecipeImage, Recipe } from "@/lib/recipes/types";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -30,19 +37,29 @@ type ImageSource = "" | "preset" | "upload";
  * @param recipe - The recipe to edit, if it exists.
  * @returns A React component.
  */
-export function CreateRecipeForm(props: { presetImages: PresetRecipeImage[]; recipe?: Recipe }) {
+export function CreateRecipeForm(props: {
+  presetImages: PresetRecipeImage[];
+  recipe?: Recipe;
+}) {
   const { operations } = useRecipeSaves();
   const recoveryKey = useSearchParams().get("draft");
   const [formVersion, setFormVersion] = useState(0);
+  const [cancelledRecoveryKey, setCancelledRecoveryKey] = useState<
+    string | null
+  >(null);
   const submitted = useRef(false);
   const [submittedForm, setSubmittedForm] = useState<{
     key: string;
     recipe?: Recipe;
     draft?: RecipeSaveOperation;
   } | null>(null);
-  const draft = operations.find((operation) => operation.key === recoveryKey &&
-    operation.status === "failed" &&
-    operation.recipeId === (props.recipe?.id ?? null));
+  const draft = operations.find(
+    (operation) =>
+      operation.key === recoveryKey &&
+      operation.key !== cancelledRecoveryKey &&
+      operation.status === "failed" &&
+      operation.recipeId === (props.recipe?.id ?? null),
+  );
   const initialForm = submittedForm ?? {
     key: `${recipeFormKey(props.recipe?.id, draft, formVersion)}:${JSON.stringify(props.recipe)}`,
     recipe: props.recipe,
@@ -51,23 +68,33 @@ export function CreateRecipeForm(props: { presetImages: PresetRecipeImage[]; rec
 
   // Activity runs layout-effect cleanup when navigation hides this page.
   // Reset a submitted form only then, never while the user can still see it.
-  useLayoutEffect(() => () => {
-    if (!submitted.current) return;
-    submitted.current = false;
-    setSubmittedForm(null);
-    setFormVersion(version => version + 1);
-  }, []);
+  useLayoutEffect(
+    () => () => {
+      if (!submitted.current) return;
+      submitted.current = false;
+      setSubmittedForm(null);
+      setFormVersion((version) => version + 1);
+    },
+    [],
+  );
 
-  return <RecipeForm
-    key={initialForm.key}
-    {...props}
-    recipe={initialForm.recipe}
-    draft={initialForm.draft}
-    onSubmitted={() => {
-      submitted.current = true;
-      setSubmittedForm(initialForm);
-    }}
-  />;
+  return (
+    <RecipeForm
+      key={initialForm.key}
+      {...props}
+      recipe={initialForm.recipe}
+      draft={initialForm.draft}
+      onSubmitted={() => {
+        submitted.current = true;
+        setSubmittedForm(initialForm);
+      }}
+      onCancelled={() => {
+        setSubmittedForm(null);
+        setCancelledRecoveryKey(recoveryKey);
+        setFormVersion((version) => version + 1);
+      }}
+    />
+  );
 }
 
 function RecipeForm({
@@ -75,11 +102,13 @@ function RecipeForm({
   recipe: originalRecipe,
   draft,
   onSubmitted,
+  onCancelled,
 }: {
   presetImages: PresetRecipeImage[];
   recipe?: Recipe;
   draft?: RecipeSaveOperation;
   onSubmitted: () => void;
+  onCancelled: () => void;
 }) {
   const recipe = draft?.recipe ?? originalRecipe;
   const { enqueue, operations } = useRecipeSaves();
@@ -98,8 +127,12 @@ function RecipeForm({
       : "",
   );
   const [imageValue, setImageValue] = useState(recipe?.image_value ?? "");
-  const [imageChanged, setImageChanged] = useState(draft?.data.get("image_changed") === "true");
-  const [imageFile, setImageFile] = useState<File | null>(draft?.imageFile ?? null);
+  const [imageChanged, setImageChanged] = useState(
+    draft?.data.get("image_changed") === "true",
+  );
+  const [imageFile, setImageFile] = useState<File | null>(
+    draft?.imageFile ?? null,
+  );
   const [imageError, setImageError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const displayedImage =
@@ -118,16 +151,36 @@ function RecipeForm({
     }
 
     const url = URL.createObjectURL(imageFile);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
+    let cancelled = false;
+    const preview = new window.Image();
+    preview.decoding = "async";
+    preview.src = url;
+    void preview
+      .decode()
+      .catch(() => {})
+      .then(() => {
+        if (!cancelled) setPreviewUrl(url);
+      });
+    return () => {
+      cancelled = true;
+      URL.revokeObjectURL(url);
+    };
   }, [imageFile]);
+
+  useEffect(() => {
+    router.prefetch(`/${locale}`);
+  }, [router, locale]);
 
   const [error, setError] = useState<string | null>(null);
   const submitted = useRef(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const isPending = isSubmitted || operations.some((operation) =>
-    operation.status === "saving" && operation.key === (originalRecipe?.id ?? draft?.key),
-  );
+  const isPending =
+    isSubmitted ||
+    operations.some(
+      (operation) =>
+        operation.status === "saving" &&
+        operation.key === (originalRecipe?.id ?? draft?.key),
+    );
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -138,8 +191,13 @@ function RecipeForm({
       setError(errors(validationError));
       return;
     }
-    const result = enqueue({ data, imageFile, recipeId: originalRecipe?.id ?? null, draftKey: draft?.key,
-      existingImageUrl: recipe?.image_url ?? null });
+    const result = enqueue({
+      data,
+      imageFile,
+      recipeId: originalRecipe?.id ?? null,
+      draftKey: draft?.key,
+      existingImageUrl: recipe?.image_url ?? null,
+    });
     if (result.error) {
       setError(result.error);
       return;
@@ -151,7 +209,11 @@ function RecipeForm({
   }
 
   return (
-    <form onSubmit={submit} className="mt-6 grid max-w-xl gap-4" aria-busy={isPending}>
+    <form
+      onSubmit={submit}
+      className="mt-6 grid w-full gap-4"
+      aria-busy={isPending}
+    >
       <fieldset className="grid min-w-0 gap-2" disabled={isPending}>
         <legend className="sr-only">{t("image")}</legend>
         <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
@@ -162,6 +224,8 @@ function RecipeForm({
               fill
               sizes="(max-width: 640px) 100vw, 576px"
               src={displayedImage}
+              decoding="async"
+              loading="eager"
               unoptimized={imageSource === "upload" && Boolean(imageFile)}
             />
           ) : (
@@ -378,9 +442,31 @@ function RecipeForm({
         removeLabel={(tag) => t("removeTag", { tag })}
       />
 
-      {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
+      {error && (
+        <p className="text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      )}
 
-      <div className="flex w-full justify-end">
+      <div className="flex w-full justify-end gap-3 pb-4">
+        <Button
+          className="h-11 w-fit"
+          disabled={isPending}
+          icon={<X />}
+          onClick={() => {
+            if (!window.confirm(t("cancelConfirm"))) return;
+            onCancelled();
+            router.push(
+              originalRecipe
+                ? `/${locale}/recipes/${originalRecipe.id}`
+                : `/${locale}`,
+            );
+          }}
+          type="button"
+          variant="secondary"
+        >
+          {t("cancel")}
+        </Button>
         <Button
           className="h-11 w-fit"
           disabled={isPending}
@@ -445,7 +531,12 @@ function TextList({
     <label className="grid gap-2">
       <span className="text-sm font-medium">
         {label}
-        {required && <span className="text-accent" aria-hidden="true"> *</span>}
+        {required && (
+          <span className="text-accent" aria-hidden="true">
+            {" "}
+            *
+          </span>
+        )}
       </span>
       <Textarea
         defaultValue={defaultValue}

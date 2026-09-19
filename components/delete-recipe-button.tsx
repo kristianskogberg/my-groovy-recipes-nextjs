@@ -21,7 +21,7 @@ export function DeleteRecipeButton({ recipe }: { recipe: RecipeCard }) {
   }
 
   return (
-    <Button disabled={isDeleting || isSaving} icon={<Trash2 />} onClick={handleDelete} type="button" variant="destructive">
+    <Button disabled={isDeleting || isSaving} icon={<Trash2 />} hideTextOnMobile onClick={handleDelete} type="button" variant="destructive">
       {isDeleting ? t("deleting") : t("delete")}
     </Button>
   );

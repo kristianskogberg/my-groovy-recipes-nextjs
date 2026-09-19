@@ -47,6 +47,8 @@
     "removeTag": "Remove {tag}",
     "create": "Save recipe",
     "save": "Save changes",
+    "cancel": "Cancel",
+    "cancelConfirm": "Cancel and discard your unsaved changes?",
     "saving": "Saving...",
     "edit": "Edit",
     "delete": "Delete",

@@ -63,7 +63,7 @@ async function RecipeContent({
       <div className="flex items-start justify-between gap-4">
         <h1 className="text-3xl font-bold">{recipe.name}</h1>
         <div className="flex gap-2">
-          <Button asChild icon={<Pencil />}>
+          <Button asChild icon={<Pencil />} hideTextOnMobile>
             <Link href={`/recipes/${recipe.id}/edit`}>{t("edit")}</Link>
           </Button>
           <DeleteRecipeButton recipe={recipe} />

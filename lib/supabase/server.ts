@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 
 /**
  * Especially important if using Fluid compute: Don't put this client in a
@@ -7,6 +8,9 @@ import { cookies } from "next/headers";
  * it.
  */
 export async function createClient() {
+  // Supabase auth reads the current time internally. Keep client initialization
+  // and token validation at request time, including during partial prerendering.
+  await connection();
   const cookieStore = await cookies();
 
   return createServerClient(

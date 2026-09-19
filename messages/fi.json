@@ -47,6 +47,8 @@
     "removeTag": "Poista {tag}",
     "create": "Tallenna resepti",
     "save": "Tallenna muutokset",
+    "cancel": "Peruuta",
+    "cancelConfirm": "Hylätäänkö tallentamattomat muutokset?",
     "saving": "Tallennetaan...",
     "edit": "Muokkaa",
     "delete": "Poista",

@@ -40,14 +40,25 @@ export interface ButtonProps
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
   icon?: React.ReactNode;
+  /** Show only the icon below the sm breakpoint, retaining the accessible text. */
+  hideTextOnMobile?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (
-    { className, variant, size, asChild = false, icon, children, ...props },
+    { className, variant, size, asChild = false, icon, hideTextOnMobile = false, children, ...props },
     ref,
   ) => {
     const iconElement = icon ? <span aria-hidden="true">{icon}</span> : null;
+    const compact = hideTextOnMobile && Boolean(icon);
+    const classes = cn(
+      buttonVariants({ variant, size }),
+      compact && "max-sm:gap-0 max-sm:px-2.5",
+      className,
+    );
+    const renderLabel = (label: React.ReactNode) => compact
+      ? <span className="sr-only sm:not-sr-only">{label}</span>
+      : label;
 
     if (asChild) {
       const child = React.Children.only(children) as React.ReactElement<{
@@ -56,7 +67,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
       return (
         <Slot
-          className={cn(buttonVariants({ variant, size, className }))}
+          className={classes}
           ref={ref}
           {...props}
         >
@@ -64,7 +75,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             child,
             undefined,
             iconElement,
-            child.props.children,
+            renderLabel(child.props.children),
           )}
         </Slot>
       );
@@ -72,12 +83,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     return (
       <button
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={classes}
         ref={ref}
         {...props}
       >
         {iconElement}
-        {children}
+        {renderLabel(children)}
       </button>
     );
   },
