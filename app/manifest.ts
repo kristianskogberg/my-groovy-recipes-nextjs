@@ -6,7 +6,6 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "My Groovy Recipes",
     short_name: "Groovy Recipes",
     description: "Save and discover your favorite recipes",
-    start_url: "/",
     scope: "/",
     display: "standalone",
     background_color: "#fbf4e7",
