@@ -193,7 +193,10 @@ export async function saveRecipe(
   }
 
   revalidatePath(`/${locale}`);
-  if (recipeId) revalidatePath(`/${locale}/recipes/${recipeId}`);
+  if (recipeId) {
+    revalidatePath(`/${locale}/recipes/${recipeId}`);
+    revalidatePath(`/${locale}/recipes/${recipeId}/edit`);
+  }
   return { error: null, recipe: {
     ...savedRecipe,
     image_url: savedRecipe.image_source === "upload" && savedRecipe.image_value

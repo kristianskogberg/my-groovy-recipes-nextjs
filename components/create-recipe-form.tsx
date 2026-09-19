@@ -21,7 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
 type ImageSource = "" | "preset" | "upload";
 
@@ -34,16 +34,39 @@ export function CreateRecipeForm(props: { presetImages: PresetRecipeImage[]; rec
   const { operations } = useRecipeSaves();
   const recoveryKey = useSearchParams().get("draft");
   const [formVersion, setFormVersion] = useState(0);
+  const submitted = useRef(false);
+  const [submittedForm, setSubmittedForm] = useState<{
+    key: string;
+    recipe?: Recipe;
+    draft?: RecipeSaveOperation;
+  } | null>(null);
   const draft = operations.find((operation) => operation.key === recoveryKey &&
     operation.status === "failed" &&
     operation.recipeId === (props.recipe?.id ?? null));
-  // Cache Components can retain this page after navigation. Remount all inputs
-  // after handing off a submission, including TagInput and the submission lock.
+  const initialForm = submittedForm ?? {
+    key: `${recipeFormKey(props.recipe?.id, draft, formVersion)}:${JSON.stringify(props.recipe)}`,
+    recipe: props.recipe,
+    draft,
+  };
+
+  // Activity runs layout-effect cleanup when navigation hides this page.
+  // Reset a submitted form only then, never while the user can still see it.
+  useLayoutEffect(() => () => {
+    if (!submitted.current) return;
+    submitted.current = false;
+    setSubmittedForm(null);
+    setFormVersion(version => version + 1);
+  }, []);
+
   return <RecipeForm
-    key={recipeFormKey(props.recipe?.id, draft, formVersion)}
+    key={initialForm.key}
     {...props}
-    draft={draft}
-    onSubmitted={() => setFormVersion(version => version + 1)}
+    recipe={initialForm.recipe}
+    draft={initialForm.draft}
+    onSubmitted={() => {
+      submitted.current = true;
+      setSubmittedForm(initialForm);
+    }}
   />;
 }
 
@@ -128,7 +151,7 @@ function RecipeForm({
   }
 
   return (
-    <form onSubmit={submit} className="mt-6 grid max-w-xl gap-4">
+    <form onSubmit={submit} className="mt-6 grid max-w-xl gap-4" aria-busy={isPending}>
       <fieldset className="grid min-w-0 gap-2" disabled={isPending}>
         <legend className="sr-only">{t("image")}</legend>
         <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
