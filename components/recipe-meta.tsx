@@ -13,7 +13,7 @@ export function RecipeMeta({
 }: {
   calories: number | null;
   className?: string;
-  servings: number | string;
+  servings: number | string | null;
   timeMinutes: number | null;
 }) {
   const t = useTranslations("Recipe");
@@ -25,10 +25,10 @@ export function RecipeMeta({
         className,
       )}
     >
-      <span className="inline-flex items-center gap-1.5">
+      {servings !== null && <span className="inline-flex items-center gap-1.5">
         <UserRound aria-hidden="true" className="size-4" />
         {t("servingsValue", { count: servings })}
-      </span>
+      </span>}
       {timeMinutes !== null && (
         <span className="inline-flex items-center gap-1.5">
           <Clock aria-hidden="true" className="size-4" />

@@ -4,7 +4,7 @@
  * @property {string} id - The unique identifier for the recipe.
  * @property {string} name - The name of the recipe.
  * @property {string | null} description - A description of the recipe.
- * @property {number | string} servings - The number of servings the recipe makes.
+ * @property {number | string | null} servings - The optional number of servings the recipe makes.
  * @property {number | null} time_minutes - The time in minutes it takes to prepare the recipe.
  * @property {number | null} calories_per_serving - The number of calories per serving.
  * @property {string | null} image_source - The source of the image (e.g., "preset" or null).
@@ -17,7 +17,7 @@ export type Recipe = {
   id: string;
   name: string;
   description: string | null;
-  servings: number | string;
+  servings: number | string | null;
   time_minutes: number | null;
   calories_per_serving: number | null;
   image_source: string | null;

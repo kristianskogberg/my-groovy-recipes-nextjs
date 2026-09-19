@@ -26,8 +26,9 @@ const text = (data: FormData, key: string) => String(data.get(key) ?? "").trim()
 const number = (data: FormData, key: string) => text(data, key) === "" ? null : Number(text(data, key));
 
 export function validateRecipeDraft(data: FormData, file: File | null): string | null {
-  const servings = Number(text(data, "servings"));
-  if (!text(data, "name") || !Number.isFinite(servings) || servings <= 0) return "invalidRecipe";
+  const servings = number(data, "servings");
+  if (!text(data, "name") || !text(data, "ingredients")) return "invalidRecipe";
+  if (servings !== null && (!Number.isFinite(servings) || servings <= 0)) return "invalidServings";
   for (const key of ["time_minutes", "calories_per_serving"]) {
     const value = number(data, key);
     if (value !== null && (!Number.isInteger(value) || value < 0)) return "invalidNumbers";
@@ -44,7 +45,7 @@ export function recipeFromDraft(data: FormData, id: string, imageUrl: string | n
   const list = (key: string, separator = "\n") => text(data, key).split(separator).map(item => item.trim()).filter(Boolean);
   return {
     id, name: text(data, "name"), description: text(data, "description") || null,
-    servings: Number(text(data, "servings")),
+    servings: number(data, "servings"),
     time_minutes: number(data, "time_minutes"), calories_per_serving: number(data, "calories_per_serving"),
     image_source: text(data, "image_source") || null,
     image_value: text(data, "image_value") || null, image_url: imageUrl,
